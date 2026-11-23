@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Warp &amp; Shear</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side">
+        <header class="brand">Warp &amp; Shear</header>
+        <section class="text-block">
+          <textarea id="text" spellcheck="false" rows="5" aria-label="Text"></textarea>
+          <div class="tools">
+            <button data-act="hl" title="Wrap the selection in *…* (⌘B / Ctrl+B)">Highlight</button>
+            <button data-act="up" title="Add ^ to the current line(s)">Line bigger</button>
+            <button data-act="down" title="Add ~ to the current line(s)">Line smaller</button>
+          </div>
+          <p class="hint">
+            <code>*word*</code> highlight · <code>^</code> / <code>~</code> at line start = one size step bigger / smaller
+          </p>
+        </section>
+        <div id="pane"></div>
+      </aside>
+      <main class="stage">
+        <div class="bar">
+          <button data-act="randomize" class="primary" title="New random effect stack (R)">Randomize</button>
+          <button data-act="mutate" title="Nudge the current effects (M)">Mutate</button>
+          <span class="spacer"></span>
+          <button data-act="copy">Copy SVG</button>
+          <button data-act="svg">SVG</button>
+          <button data-act="png">PNG</button>
+        </div>
+        <div class="canvas" id="canvas"><div class="art" id="art"></div></div>
+        <div class="status" id="status"></div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

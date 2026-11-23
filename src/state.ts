@@ -1,4 +1,4 @@
-import { EFFECTS, type Control, type EffectsState } from './core/effects';
+import { EFFECTS, clampAmount, type Control, type EffectsState } from './core/effects';
 import type { DesignState } from './core/render';
 
 export const FONTS = {
@@ -118,6 +118,11 @@ export function applyPreset(state: DesignState, preset: DeepPartial<DesignState>
   assignDeep(state, defaultState());
   assignDeep(state, preset);
   if (keepText) state.text = text;
+  sanitize(state);
+}
+
+function sanitize(state: DesignState) {
+  for (const p of Object.values(state.effects)) p.amount = clampAmount(p.amount);
 }
 
 /* ---------------- randomize / mutate ---------------- */
@@ -147,6 +152,7 @@ export function randomizeEffects(state: DesignState) {
   }
   const scopes = ['block', 'line', 'glyph'] as const;
   const pick = <T>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)];
+  for (const p of Object.values(state.effects)) p.amount = 1;
   state.effects.jitter.enabled = Math.random() < 0.25;
   state.effects.shear.enabled = Math.random() < 0.85;
   state.effects.envelope.enabled = Math.random() < 0.5;
@@ -183,6 +189,7 @@ export function loadSaved(): DesignState {
   } catch {
     /* private mode or corrupt data: start fresh */
   }
+  sanitize(state);
   return state;
 }
 

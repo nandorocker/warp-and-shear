@@ -20,6 +20,8 @@ export type PointFn = (x: number, y: number, f: Frame) => [number, number];
 export interface BaseParams {
   enabled: boolean;
   scope: Scope;
+  /** Multiplies the effect's strength parameters. 1 = as set, 0 = no effect. */
+  amount: number;
 }
 
 export interface Control {
@@ -37,7 +39,34 @@ export interface EffectDef<P extends BaseParams = BaseParams & Record<string, un
   label: string;
   defaults: P;
   controls: { [K in Exclude<keyof P, keyof BaseParams>]?: Control };
+  /** Parameters Amount scales (each one must be 0 = neutral). */
+  strength: readonly Exclude<keyof P, keyof BaseParams>[];
+  /** Parameters shown directly; the rest go under Details. */
+  primary: readonly Exclude<keyof P, keyof BaseParams>[];
   make(p: P): PointFn;
+}
+
+export const AMOUNT_MAX = 2;
+
+/** Amount is 0..AMOUNT_MAX; anything else (e.g. a hand-edited save) is clamped. */
+export function clampAmount(a: number): number {
+  return Number.isFinite(a) ? Math.min(AMOUNT_MAX, Math.max(0, a)) : 1;
+}
+
+/** Params with Amount applied, clamped to each control's range. */
+export function effectiveParams<P extends BaseParams>(def: EffectDef<P>, p: P): P {
+  const amount = clampAmount(p.amount);
+  if (amount === 1) return p;
+  const q = { ...p, amount } as unknown as Record<string, unknown>;
+  for (const key of def.strength) {
+    const k = key as string;
+    const c = (def.controls as Record<string, Control>)[k];
+    let v = (p[key] as number) * amount;
+    if (c?.min !== undefined) v = Math.max(c.min, v);
+    if (c?.max !== undefined) v = Math.min(c.max, v);
+    q[k] = v;
+  }
+  return q as P;
 }
 
 /* ------------------------------------------------------------------ */
@@ -53,7 +82,7 @@ export interface JitterParams extends BaseParams {
 const jitter: EffectDef<JitterParams> = {
   id: 'jitter',
   label: 'Jitter',
-  defaults: { enabled: false, scope: 'glyph', rotate: 6, scale: 0.12, shiftX: 0, shiftY: 0.08, seed: 1 },
+  defaults: { enabled: false, scope: 'glyph', amount: 1, rotate: 6, scale: 0.12, shiftX: 0, shiftY: 0.08, seed: 1 },
   controls: {
     rotate: { label: 'rotate °', min: 0, max: 45, step: 0.5, random: [2, 14] },
     scale: { min: 0, max: 0.6, step: 0.01, random: [0, 0.25] },
@@ -61,6 +90,8 @@ const jitter: EffectDef<JitterParams> = {
     shiftY: { label: 'shift y', min: 0, max: 0.5, step: 0.01, random: [0, 0.15] },
     seed: { min: 1, max: 999, step: 1 },
   },
+  strength: ['rotate', 'scale', 'shiftX', 'shiftY'],
+  primary: ['rotate', 'scale', 'shiftX', 'shiftY'],
   make: (p) => (x, y, f) => {
     const r = (rand(p.seed, f.i, 1) * 2 - 1) * p.rotate * DEG;
     const s = 1 + (rand(p.seed, f.i, 2) * 2 - 1) * p.scale;
@@ -85,12 +116,14 @@ export interface ShearParams extends BaseParams {
 const shear: EffectDef<ShearParams> = {
   id: 'shear',
   label: 'Shear',
-  defaults: { enabled: true, scope: 'block', skewX: 0, skewY: 0, rotate: 0 },
+  defaults: { enabled: true, scope: 'block', amount: 1, skewX: 0, skewY: 0, rotate: 0 },
   controls: {
     skewX: { label: 'lean °', min: -45, max: 45, step: 0.5, random: [-6, 20] },
     skewY: { label: 'rise °', min: -45, max: 45, step: 0.5, random: [-18, 18] },
     rotate: { label: 'rotate °', min: -90, max: 90, step: 0.5, random: [-8, 8] },
   },
+  strength: ['skewX', 'skewY', 'rotate'],
+  primary: ['skewX', 'skewY', 'rotate'],
   make: (p) => {
     const tx = Math.tan(p.skewX * DEG);
     const ty = Math.tan(p.skewY * DEG);
@@ -128,6 +161,7 @@ const envelope: EffectDef<EnvelopeParams> = {
   defaults: {
     enabled: false,
     scope: 'block',
+    amount: 1,
     style: 'flag',
     bend: 0.4,
     waves: 1,
@@ -145,6 +179,8 @@ const envelope: EffectDef<EnvelopeParams> = {
     hPersp: { label: 'h persp', min: -0.95, max: 0.95, step: 0.01, random: [-0.5, 0.5] },
     vPersp: { label: 'v persp', min: -0.95, max: 0.95, step: 0.01, random: [-0.3, 0.3] },
   },
+  strength: ['bend', 'hPersp', 'vPersp'],
+  primary: ['waves'],
   make: (p) => {
     const b = p.bend * 0.6;
     const k = 2 * Math.PI * p.waves;
@@ -219,6 +255,7 @@ const cloth: EffectDef<ClothParams> = {
   defaults: {
     enabled: false,
     scope: 'block',
+    amount: 1,
     depth: 0.5,
     waves: 1,
     phase: 90,
@@ -240,6 +277,8 @@ const cloth: EffectDef<ClothParams> = {
     tilt: { label: 'tilt °', min: -60, max: 60, step: 0.5, random: [-25, 25] },
     perspective: { min: 0, max: 1, step: 0.01, random: [0.2, 0.9] },
   },
+  strength: ['depth', 'turn', 'tilt'],
+  primary: ['waves'],
   make: (p) => {
     const k = 2 * Math.PI * p.waves;
     const ph0 = p.phase * DEG;
@@ -272,6 +311,7 @@ const cloth: EffectDef<ClothParams> = {
 };
 
 /** Fixed pipeline order: per-glyph chaos → shear → 2D envelope → 3D cloth. */
+export { cloth, envelope, jitter, shear };
 export const EFFECTS = [jitter, shear, envelope, cloth] as const;
 
 export interface EffectsState {

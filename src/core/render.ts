@@ -1,5 +1,5 @@
 import type { Font } from 'opentype.js';
-import { EFFECTS, type EffectsState, type Frame, type Scope } from './effects';
+import { EFFECTS, effectiveParams, type EffectDef, type EffectsState, type Frame, type Scope } from './effects';
 import { emptyBox, growBox, isEmptyBox, type Box, type Pts } from './geom';
 import { layoutText, type GlyphItem, type TypeOptions } from './layout';
 import { applyCase, parseText, type TextCase } from './text';
@@ -71,7 +71,8 @@ export function buildScene(font: Font, s: DesignState): Scene {
     const p = s.effects[def.id as keyof EffectsState];
     if (!p.enabled) continue;
     // Each def is typed against its own params; the registry lookup is by id.
-    const fn = (def.make as (p: unknown) => (x: number, y: number, f: Frame) => [number, number])(p);
+    const d = def as unknown as EffectDef;
+    const fn = d.make(effectiveParams(d, p as unknown as Parameters<EffectDef["make"]>[0]));
     applyEffect(glyphs, p.scope, fn);
   }
 

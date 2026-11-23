@@ -1,7 +1,9 @@
-import { Pane } from 'tweakpane';
-import { EFFECTS, type Control, type EffectsState } from './core/effects';
+import { Pane, type FolderApi } from 'tweakpane';
+import { AMOUNT_MAX, EFFECTS, type Control, type EffectsState } from './core/effects';
 import type { DesignState } from './core/render';
 import { FONTS, PRESETS } from './state';
+import { clothWidget } from './widgets/cloth';
+import { envelopeWidget } from './widgets/envelope';
 
 export interface PanelHooks {
   onChange(): void;
@@ -54,17 +56,67 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
   cf.addBinding(state.color, 'highlight');
 
   /* Effects (schema-driven) */
+  const widgets: { render(): void }[] = [];
+  let refreshing = false;
+  const editFromWidget = () => {
+    // refresh() fires a pane 'change' per updated binding; redraw once instead.
+    refreshing = true;
+    pane.refresh();
+    refreshing = false;
+    widgets.forEach((w) => w.render());
+    hooks.onChange();
+  };
+
   for (const def of EFFECTS) {
     const p = state.effects[def.id as keyof EffectsState] as unknown as Record<string, unknown> & {
       enabled: boolean;
     };
+    const controls = def.controls as Record<string, Control>;
+    const primary = new Set<string>(def.primary as readonly string[]);
+    const bind = (folder: FolderApi, key: string) => {
+      const { random: _r, ...params } = controls[key];
+      return folder.addBinding(p, key, params);
+    };
+
     const f = pane.addFolder({ title: def.label, expanded: p.enabled });
     const on = f.addBinding(p, 'enabled', { label: 'on' });
-    const rest = [f.addBinding(p, 'scope', { options: SCOPES })];
-    for (const [key, c] of Object.entries(def.controls as Record<string, Control>)) {
-      const { random: _r, ...params } = c;
-      rest.push(f.addBinding(p, key, params));
+    const rest: { disabled: boolean }[] = [
+      f.addBinding(p, 'scope', { options: SCOPES }),
+      f.addBinding(p, 'amount', { min: 0, max: AMOUNT_MAX, step: 0.01 }),
+    ];
+
+    const widget =
+      def.id === 'envelope'
+        ? envelopeWidget(state.effects.envelope, editFromWidget)
+        : def.id === 'cloth'
+          ? clothWidget(state.effects.cloth, editFromWidget)
+          : null;
+    if (widget) {
+      // A separator blade keeps the widget in order inside the folder.
+      const host = f.addBlade({ view: 'separator' });
+      host.element.replaceChildren(widget.el);
+      host.element.classList.add('wdg-host');
+      widgets.push(widget);
+      widget.render();
     }
+
+    for (const key of Object.keys(controls)) if (primary.has(key)) rest.push(bind(f, key));
+    if (def.id === 'jitter') {
+      rest.push(
+        f.addButton({ title: 'Shuffle' }).on('click', () => {
+          state.effects.jitter.seed = 1 + Math.floor(Math.random() * 998);
+          pane.refresh();
+          hooks.onChange();
+        }),
+      );
+    }
+
+    const secondary = Object.keys(controls).filter((k) => !primary.has(k));
+    if (secondary.length) {
+      const details = f.addFolder({ title: 'Details', expanded: false });
+      for (const key of secondary) rest.push(bind(details, key));
+    }
+
     const sync = () => rest.forEach((b) => (b.disabled = !p.enabled));
     on.on('change', () => {
       sync();
@@ -87,12 +139,17 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
   of.addBinding(state.output, 'transparent', { label: 'no bg on export' });
   of.addBinding(state.type, 'detail', { label: 'curve step', min: 0.5, max: 6, step: 0.1 });
 
-  pane.on('change', () => hooks.onChange());
+  pane.on('change', () => {
+    if (refreshing) return;
+    widgets.forEach((w) => w.render());
+    hooks.onChange();
+  });
 
   return {
     refresh() {
       pane.refresh();
       syncers.forEach((s) => s());
+      widgets.forEach((w) => w.render());
     },
   };
 }

@@ -335,3 +335,61 @@ button.primary {
   border-color: var(--accent);
   background: #3a2a22;
 }
+
+/* Reset-to-default icon beside each field. The slot is always reserved so fields don't shift when it appears. */
+.tp-lblv.has-reset > .tp-lblv_v {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tp-lblv.has-reset > .tp-lblv_v > :first-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Number fields with no slider: a small fixed-width input instead of stretching across the row. */
+.tp-lblv.compact > .tp-lblv_v > :first-child {
+  flex: 0 0 76px;
+}
+
+button.rst {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  visibility: hidden;
+}
+
+button.rst.on {
+  visibility: visible;
+}
+
+button.rst:hover {
+  background: #34343a;
+  color: var(--accent);
+}
+
+.tp-v-disabled button.rst {
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* Compact number fields scrub on drag; show the resize cursor until the field is focused for typing. */
+.tp-lblv.compact .tp-txtv_i {
+  touch-action: none;
+}
+
+.tp-lblv.compact .tp-txtv_i:not(:focus) {
+  cursor: ew-resize;
+}
+
+.tp-lblv.compact .tp-txtv_i:focus {
+  cursor: text;
+}

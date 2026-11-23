@@ -1,47 +1,39 @@
-# Warp & Shear
+# Warp & Shear ✨
 
-Type the text, stack distortion effects, export outlined SVG or PNG.
+A tiny playground for turning text into wiggly, wonderfully warped lettering. Type a phrase, layer on distortion, then export it as SVG or PNG.
 
-```bash
+## Get started
+
+```sh
 npm install
 npm run dev
 ```
 
-## Text markup
+Open the local URL printed by Vite and start making something lovely.
 
-| Markup | Effect |
+## A little text magic
+
+| Type this | Get this |
 | --- | --- |
-| `*word*` | highlight color (may span lines). ⌘B / Ctrl+B wraps the selection |
-| `^` at line start | one size step bigger (`^^` = two). Step ratio is in **Type** |
-| `~` at line start | one size step smaller |
-| `\*` `\^` `\~` | literal character |
+| `*word*` | Highlighted text (can span lines); select text and press **⌘B** / **Ctrl+B** to wrap it |
+| `^` at the start of a line | One size step up; `^^` means two |
+| `~` at the start of a line | One size step down |
+| `\*`, `\^`, `\~` | A literal character |
 
-Shortcuts outside the textarea: **R** randomize, **M** mutate.
+Press **R** to randomize or **M** to mutate when the text area isn’t focused.
 
-## How it works
+## Under the hood
 
-1. **Layout** (`src/core/layout.ts`): glyph outlines from opentype.js, flattened into
-   finely subdivided polylines so non-linear warps bend straight stems too.
-2. **Effects** (`src/core/effects.ts`): each effect is a point function
-   `(x, y, frame) → [x, y]`. It runs in a fixed order: Jitter → Shear → Envelope → Cloth.
-   **Scope** picks the frame: the whole block, each line, or each glyph. The frame
-   is the current bounds of that element, so effects compose the way Illustrator
-   envelopes do.
-3. **Render** (`src/core/render.ts`): paths grouped per line, highlight via fill.
+Built with TypeScript, Vite, opentype.js, and Tweakpane. Effects are applied in order: Jitter → Shear → Envelope → Cloth. Their scope can be the whole block, a line, or an individual glyph.
 
-### Adding an effect
+### Add a font
 
-Add an `EffectDef` to `EFFECTS` with `defaults`, `controls` (min/max/step/options and an
-optional `random` range) and `make(params) → PointFn`. Add its params type to
-`EffectsState`. The panel, Randomize and Mutate pick it up automatically.
+Fonts are baked into static instances by `scripts/build-fonts.sh` (requires [uv](https://docs.astral.sh/uv/)). Add an instancer there and register the font in `src/state.ts`. Font licenses are in `public/fonts/`.
 
-### Adding a font
+### Add an effect
 
-opentype.js can't apply variable-font axes, so fonts are baked to static instances
-by `scripts/build-fonts.sh` (needs `uv`). Add an instancer line there, then add an
-entry in `FONTS` (`src/state.ts`).
+Add an `EffectDef` to `EFFECTS` in `src/core/effects.ts` and its parameter type to `EffectsState`. The panel and randomize/mutate actions pick it up automatically.
 
-Fonts (SIL OFL, licenses in `public/fonts/`):
-- DM Sans: wght 1000, opsz 40
-- Outfit: wght 600
-- Archivo: wght 900, wdth 75
+## License
+
+Font files are distributed under the SIL Open Font License; see the license files in `public/fonts/`. The application code has no license specified yet.

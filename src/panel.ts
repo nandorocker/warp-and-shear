@@ -44,6 +44,7 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
   });
   tf.addBinding(state.type, 'tracking', { min: -0.15, max: 0.3, step: 0.005 });
   tf.addBinding(state.type, 'leading', { min: -0.4, max: 1, step: 0.005 });
+  tf.addBinding(state.type, 'leadingMode', { label: 'leading by', options: { 'Optical (ink)': 'optical', 'Metric (cap height)': 'metric' } });
   tf.addBinding(state.type, 'stretchX', { label: 'stretch x', min: 0.4, max: 1.8, step: 0.01 });
   tf.addBinding(state.type, 'align', { options: { Left: 'left', Center: 'center', Right: 'right' } });
   tf.addBinding(state.type, 'fit', { label: 'fit width', min: 0, max: 1, step: 0.01 });

@@ -21,6 +21,7 @@ export function defaultState(): DesignState {
       textCase: 'as-typed',
       tracking: -0.03,
       leading: 0.06,
+      leadingMode: 'optical',
       stretchX: 1,
       align: 'left',
       fit: 0,

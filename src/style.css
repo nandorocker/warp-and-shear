@@ -315,27 +315,62 @@ button.primary:hover {
   padding: 14px 12px 40px;
 }
 
-.text-block textarea {
-  width: 100%;
-  resize: vertical;
-  min-height: 96px;
+.composer {
   background: #121214;
-  color: var(--fg);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 10px;
-  font: 15px/1.35 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  outline: none;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.12s;
 }
 
-.text-block textarea:focus {
+.composer:focus-within {
   border-color: #4a4a52;
 }
 
-.tools {
+.toolbar {
   display: flex;
-  gap: 6px;
-  margin-top: 6px;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: #19191c;
+  border-bottom: 1px solid var(--line);
+}
+
+.toolbar .sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--line);
+}
+
+button.tool {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  border-radius: 5px;
+  color: #a9a8ae;
+}
+
+button.tool:hover {
+  background: #2b2b30;
+  color: var(--fg);
+}
+
+.text-block textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  min-height: 96px;
+  background: transparent;
+  color: var(--fg);
+  border: 0;
+  padding: 10px;
+  font: 15px/1.35 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  outline: none;
 }
 
 .hint {

@@ -80,11 +80,20 @@
       <div class="body">
         <aside class="side">
           <section class="text-block">
-            <textarea id="text" spellcheck="false" rows="5" aria-label="Text"></textarea>
-            <div class="tools">
-              <button data-act="hl" title="Wrap the selection in *…* (⌘B / Ctrl+B)">Highlight</button>
-              <button data-act="up" title="Add ^ to the current line(s)">Line bigger</button>
-              <button data-act="down" title="Add ~ to the current line(s)">Line smaller</button>
+            <div class="composer">
+              <div class="toolbar" role="toolbar" aria-label="Formatting" aria-controls="text">
+                <button class="tool" data-act="hl" title="Highlight selection (⌘B / Ctrl+B)" aria-label="Highlight selection">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 11-6 6v3h9l3-3" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" /></svg>
+                </button>
+                <span class="sep" aria-hidden="true"></span>
+                <button class="tool" data-act="up" title="Make line(s) bigger (adds ^)" aria-label="Make line bigger">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 13h6" /><path d="m2 16 4.5-9 4.5 9" /><path d="M18 16V7" /><path d="m14 11 4-4 4 4" /></svg>
+                </button>
+                <button class="tool" data-act="down" title="Make line(s) smaller (adds ~)" aria-label="Make line smaller">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 13h6" /><path d="m2 16 4.5-9 4.5 9" /><path d="M18 7v9" /><path d="m14 12 4 4 4-4" /></svg>
+                </button>
+              </div>
+              <textarea id="text" spellcheck="false" rows="5" aria-label="Text"></textarea>
             </div>
             <p class="hint">
               <code>*word*</code> highlight · <code>^</code> / <code>~</code> at line start = one size step bigger / smaller

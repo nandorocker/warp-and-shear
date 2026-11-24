@@ -202,6 +202,9 @@ function stepLines(dir: 1 | -1) {
   replaceRange(start, end, text, start, start + text.length);
 }
 
+// Toolbar clicks shouldn't pull focus out of the text, so the selection stays visible.
+$('.toolbar').addEventListener('mousedown', (e) => e.preventDefault());
+
 textEl.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
     e.preventDefault();

@@ -33,9 +33,9 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
   function bindR(folder: FolderApi, obj: object, def: object, key: string, params: BindParams = {}) {
     const rec = obj as Record<string, unknown>;
     const fallback = (def as Record<string, unknown>)[key];
-    // A trailing "°" in the label is a unit: show it inside the value field, where it can't be edited away.
-    const unit = typeof params.label === 'string' && /\s*°$/.test(params.label) ? '°' : '';
-    if (unit) params = { ...params, label: (params.label as string).replace(/\s*°$/, '') };
+    // A trailing "°" or "%" in the label is a unit: show it inside the value field, where it can't be edited away.
+    const unit = typeof params.label === 'string' ? (params.label.match(/\s*([°%])$/)?.[1] ?? '') : '';
+    if (unit) params = { ...params, label: (params.label as string).replace(/\s*[°%]$/, '') };
     const b = folder.addBinding(rec, key, params);
     const field = unit ? b.element.querySelector('.tp-txtv') : null;
     if (field) {
@@ -44,6 +44,7 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
       u.textContent = unit;
       u.setAttribute('aria-hidden', 'true');
       field.classList.add('has-unit');
+      (field as HTMLElement).dataset.unit = unit;
       field.append(u);
     }
     if (typeof fallback !== 'number') return b; // reset only makes sense for numbers, not fonts, colors or toggles
@@ -108,7 +109,11 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     }
     b.element.querySelector('.tp-lblv_v')?.appendChild(btn);
 
-    const update = () => btn.classList.toggle('on', !same(rec[key], fallback));
+    const update = () => {
+      const changed = !same(rec[key], fallback);
+      btn.classList.toggle('on', changed);
+      b.element.classList.toggle('is-default', !changed); // dims the value so edited fields stand out
+    };
     resets.push(update);
     update();
     return b;
@@ -127,7 +132,21 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
   tb('tracking', { step: 0.005 });
   tb('leading', { step: 0.005 });
   tb('leadingMode', { label: 'leading by', options: { 'Optical (ink)': 'optical', 'Metric (cap height)': 'metric' } });
-  tb('stretchX', { label: 'stretch x', min: 0.4, max: 1.8, step: 0.01 });
+  /* stretchX is stored as a width multiplier (1 = natural) but shown as a signed % offset (0 = natural). */
+  const stretchView = (t: () => { stretchX: number }) => ({
+    get stretchX() {
+      return Math.round((t().stretchX - 1) * 100);
+    },
+    set stretchX(v: number) {
+      t().stretchX = 1 + v / 100;
+    },
+  });
+  bindR(tf, stretchView(() => state.type), stretchView(() => defaults.type), 'stretchX', {
+    label: 'stretch x %',
+    min: -60,
+    max: 80,
+    step: 1,
+  });
   tb('align', { options: { Left: 'left', Center: 'center', Right: 'right' } });
   tb('fit', { label: 'fit width', min: 0, max: 1, step: 0.01 });
   tb('stepRatio', { label: 'step ratio', min: 1, max: 2.5, step: 0.01 });

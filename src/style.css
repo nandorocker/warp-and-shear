@@ -756,6 +756,11 @@ button.primary {
   flex: 0 0 76px;
 }
 
+/* Fields still at their default read slightly dimmer, so edited ones stand out. */
+.tp-lblv.is-default .tp-txtv_i {
+  color: color-mix(in srgb, var(--tp-input-foreground-color) 62%, var(--tp-input-background-color));
+}
+
 button.rst {
   flex: none;
   display: grid;
@@ -800,6 +805,10 @@ button.rst:hover {
 /* Units (°) sit inside the number field as a fixed suffix, so they can't be typed over or deleted. */
 #pane .tp-txtv.has-unit .tp-txtv_i {
   padding-right: 12px;
+}
+
+#pane .tp-txtv.has-unit[data-unit='%'] .tp-txtv_i {
+  padding-right: 19px; /* % is wider than ° */
 }
 
 #pane .tp-txtv .unit {

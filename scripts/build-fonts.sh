@@ -22,8 +22,13 @@ inst() {
     --remove-overlaps --update-name-table "$@"
 }
 
+# One file per weight, named <Family>-<weight>.ttf. Keep these lists in sync with FONTS in src/state.ts.
 mkdir -p public/fonts
-inst "$SRC/outfit.ttf"  wght=600            -o public/fonts/Outfit-SemiBold.ttf
-inst "$SRC/dmsans.ttf"  wght=1000 opsz=40   -o public/fonts/DMSans-Black-Display.ttf
-inst "$SRC/archivo.ttf" wght=900  wdth=75   -o public/fonts/Archivo-Black-Condensed.ttf
+for w in 400 500 600 700 800 900; do
+  inst "$SRC/outfit.ttf"  wght=$w            -o "public/fonts/Outfit-$w.ttf"
+  inst "$SRC/archivo.ttf" wght=$w wdth=75    -o "public/fonts/ArchivoCondensed-$w.ttf"
+done
+for w in 400 500 600 700 800 900 1000; do
+  inst "$SRC/dmsans.ttf"  wght=$w opsz=40    -o "public/fonts/DMSans-$w.ttf"
+done
 cp "$SRC"/OFL-*.txt public/fonts/

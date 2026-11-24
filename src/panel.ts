@@ -1,7 +1,7 @@
 import { Pane, type FolderApi } from 'tweakpane';
 import { AMOUNT_MAX, EFFECTS, type Control, type EffectsState } from './core/effects';
 import type { DesignState } from './core/render';
-import { FONTS, defaultState } from './state';
+import { FONTS, WEIGHT_NAMES, defaultState, nearestWeight, type FontId } from './state';
 import { clothWidget } from './widgets/cloth';
 import { envelopeWidget } from './widgets/envelope';
 
@@ -119,12 +119,82 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     return b;
   }
 
+  /* Icon segmented control (Figma-style) in place of a dropdown. The hidden list binding keeps
+     Tweakpane's row layout and its refresh path, so undo, presets and loads update it like any field. */
+  function segmented(folder: FolderApi, obj: object, key: string, items: { value: string; label: string; icon: string }[]) {
+    const rec = obj as Record<string, unknown>;
+    const b = folder.addBinding(rec, key, { options: Object.fromEntries(items.map((i) => [i.label, i.value])) });
+    const group = document.createElement('div');
+    group.className = 'seg';
+    group.setAttribute('role', 'radiogroup');
+    group.setAttribute('aria-label', key);
+    const btns = items.map((item) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('role', 'radio');
+      btn.title = item.label;
+      btn.setAttribute('aria-label', item.label);
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${item.icon}</svg>`;
+      btn.addEventListener('click', () => {
+        if (rec[key] === item.value) return;
+        rec[key] = item.value;
+        refreshing = true; // one redraw below instead of the pane's change event
+        b.refresh();
+        refreshing = false;
+        sync();
+        hooks.onChange();
+      });
+      group.append(btn);
+      return btn;
+    });
+    // Arrow keys move the selection, like a native radio group; only the selected box is a tab stop.
+    group.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const i = items.findIndex((it) => it.value === rec[key]);
+      const next = btns[(i + d + btns.length) % btns.length];
+      next.click();
+      next.focus();
+    });
+    const sync = () =>
+      btns.forEach((btn, i) => {
+        const on = items[i].value === rec[key];
+        btn.setAttribute('aria-checked', String(on));
+        btn.tabIndex = on ? 0 : -1;
+      });
+    b.element.querySelector('.tp-lblv_v')!.replaceChildren(group);
+    b.on('change', sync);
+    syncers.push(sync);
+    sync();
+    return b;
+  }
+
   /* Type */
   const tf = pane.addFolder({ title: 'Type' });
   const tb = (key: string, params?: BindParams) => bindR(tf, state.type, defaults.type, key, params);
-  tb('font', {
+  const fontBinding = tb('font', {
     options: Object.fromEntries(Object.entries(FONTS).map(([id, f]) => [f.label, id])),
   });
+
+  /* Weight: its options depend on the family, and Tweakpane lists can't change options, so the binding is rebuilt
+     (in place, right under font) whenever the family changes, from the panel or from undo / presets / loading. */
+  let weightBinding: { dispose(): void; refresh(): void } | null = null;
+  let weightFamily = '';
+  const syncWeight = () => {
+    const id = state.type.font as FontId;
+    state.type.weight = nearestWeight(id, state.type.weight);
+    if (weightBinding && weightFamily === id) return weightBinding.refresh();
+    weightBinding?.dispose();
+    weightFamily = id;
+    weightBinding = tf.addBinding(state.type, 'weight', {
+      index: 1,
+      options: Object.fromEntries(FONTS[id].weights.map((w) => [WEIGHT_NAMES[w] ?? String(w), w])),
+    });
+  };
+  syncWeight();
+  fontBinding.on('change', syncWeight);
+  syncers.push(syncWeight);
   tb('textCase', {
     label: 'case',
     options: { 'As typed': 'as-typed', 'ALL CAPS': 'upper', 'Sentence case': 'sentence', lowercase: 'lower' },
@@ -147,7 +217,11 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     max: 80,
     step: 1,
   });
-  tb('align', { options: { Left: 'left', Center: 'center', Right: 'right' } });
+  segmented(tf, state.type, 'align', [
+    { value: 'left', label: 'Align left', icon: '<path d="M21 6H3"/><path d="M15 12H3"/><path d="M17 18H3"/>' },
+    { value: 'center', label: 'Align center', icon: '<path d="M21 6H3"/><path d="M17 12H7"/><path d="M19 18H5"/>' },
+    { value: 'right', label: 'Align right', icon: '<path d="M21 6H3"/><path d="M21 12H9"/><path d="M21 18H7"/>' },
+  ]);
   tb('fit', { label: 'fit width', min: 0, max: 1, step: 0.01 });
   tb('stepRatio', { label: 'step ratio', min: 1, max: 2.5, step: 0.01 });
 
@@ -214,7 +288,9 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
 
     const secondary = Object.keys(controls).filter((k) => !primary.has(k));
     if (secondary.length) {
-      const details = f.addFolder({ title: 'Details', expanded: false });
+      // A quiet disclosure row (styled in CSS), not another section header.
+      const details = f.addFolder({ title: 'Advanced', expanded: false });
+      details.element.classList.add('adv');
       for (const key of secondary) rest.push(bind(details, key));
     }
 
@@ -246,6 +322,9 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     refresh() {
       // pane.refresh() emits a 'change' per updated binding; callers redraw once themselves.
       refreshing = true;
+      // Rebuild the weight list for the new family first: a list refreshed with a value it doesn't offer
+      // (e.g. Outfit's list seeing DM Sans's 1000) resets itself to its first option and writes that back.
+      syncWeight();
       pane.refresh();
       refreshing = false;
       syncers.forEach((s) => s());

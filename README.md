@@ -20,7 +20,7 @@ Open the local URL printed by Vite and start making something lovely.
 | `~` at the start of a line | One size step down |
 | `\*`, `\^`, `\~` | A literal character |
 
-Shortcuts (outside the text area): **R** randomize, **M** nudge. Anywhere: **⌘Z** / **⇧⌘Z** undo and redo, **⌘S** save settings, **⌘O** open settings, **⌘E** export SVG, **⇧⌘E** export PNG (Ctrl instead of ⌘ on Windows and Linux). Inside the text area, **⌘Z** undoes typing. Everything else is undoable from the nav bar.
+Shortcuts (outside the text area): **R** randomize, **M** nudge. Anywhere: **⌘Z** / **⇧⌘Z** undo and redo, **⌘S** save the current look as a preset, **⌘O** import presets, **⌘E** export SVG, **⇧⌘E** export PNG (Ctrl instead of ⌘ on Windows and Linux). Inside the text area, **⌘Z** undoes typing. Everything else is undoable from the nav bar.
 
 ## Under the hood
 
@@ -28,7 +28,7 @@ Built with TypeScript, Vite, opentype.js, and Tweakpane. Effects are applied in 
 
 ### Add a font
 
-Fonts are baked into static instances by `scripts/build-fonts.sh` (requires [uv](https://docs.astral.sh/uv/)). Add an instancer there and register the font in `src/state.ts`. Font licenses are in `public/fonts/`.
+Fonts are baked into static instances by `scripts/build-fonts.sh` (requires [uv](https://docs.astral.sh/uv/)). Each family is baked once per weight (`<Family>-<weight>.ttf`): add it to the loops there and register the family, its weights and its default weight in `FONTS` in `src/state.ts`. Font licenses are in `public/fonts/`.
 
 ### Add an effect
 

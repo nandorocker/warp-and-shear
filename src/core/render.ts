@@ -8,7 +8,7 @@ export type Aspect = 'fit' | '1:1' | '4:5' | '3:4' | '16:9' | '9:16';
 
 export interface DesignState {
   text: string;
-  type: TypeOptions & { font: string; textCase: TextCase };
+  type: TypeOptions & { font: string; weight: number; textCase: TextCase };
   color: { background: string; text: string; highlight: string };
   effects: EffectsState;
   output: { aspect: Aspect; padding: number; transparent: boolean };

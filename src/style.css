@@ -24,7 +24,7 @@ body {
 
 @font-face {
   font-family: 'Archivo Brand';
-  src: url('/fonts/Archivo-Black-Condensed.ttf') format('truetype');
+  src: url('/fonts/ArchivoCondensed-900.ttf') format('truetype');
   font-display: swap;
 }
 
@@ -205,7 +205,7 @@ button.primary:hover {
 }
 
 .menu > button,
-.menu #preset-list > button {
+.menu .preset-main {
   display: flex;
   width: 100%;
   justify-content: space-between;
@@ -218,14 +218,14 @@ button.primary:hover {
 
 .menu > button:hover,
 .menu > button:focus-visible,
-.menu #preset-list > button:hover,
-.menu #preset-list > button:focus-visible {
+.preset-row:hover,
+.preset-row:focus-within {
   background: #34343a;
   outline: none;
 }
 
 .menu > button:active,
-.menu #preset-list > button:active {
+.menu .preset-main:active {
   transform: none;
 }
 
@@ -287,6 +287,264 @@ button.primary:hover {
 .preset small {
   color: var(--muted);
   font-size: 11px;
+}
+
+/* ---------------- presets menu ---------------- */
+
+#presets-menu {
+  width: 310px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+#presets-menu .mi {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-label.section {
+  padding: 6px 9px 3px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.save-form {
+  padding: 4px;
+}
+
+.save-row {
+  display: flex;
+  gap: 6px;
+}
+
+.save-row button {
+  padding: 0 12px;
+}
+
+.save-form input,
+.rename-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 9px;
+  background: #121214;
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  font: inherit;
+  outline: none;
+}
+
+.save-hint {
+  padding: 4px 5px 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* One row per preset: the main button applies it; saved presets also get export / rename / delete. */
+.preset-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+}
+
+.menu .preset-main {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  outline: none;
+}
+
+.menu .preset-main:hover,
+.menu .preset-main:focus-visible {
+  background: transparent;
+}
+
+.preset-row .preset {
+  min-width: 0;
+}
+
+.preset-row .preset > span:last-child {
+  min-width: 0;
+}
+
+.preset-row .preset b,
+.preset-row .preset small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preset-row.renaming {
+  padding: 5px 6px 5px 9px;
+  background: #34343a;
+}
+
+.rename-input {
+  height: 28px;
+  padding: 0 7px;
+}
+
+.preset-acts {
+  display: flex;
+  flex: none;
+  gap: 1px;
+  padding-right: 4px;
+  opacity: 0;
+}
+
+.preset-row:hover .preset-acts,
+.preset-row:focus-within .preset-acts {
+  opacity: 1;
+}
+
+.menu .preset-acts button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  border-radius: 4px;
+  color: #b9b8bd;
+}
+
+.menu .preset-acts button:hover,
+.menu .preset-acts button:focus-visible {
+  background: #44444c;
+  color: var(--fg);
+  outline: none;
+}
+
+.menu .preset-acts button.del:hover,
+.menu .preset-acts button.del:focus-visible {
+  color: #f08a87;
+}
+
+.preset-acts .lbl,
+.menu .preset-acts button.x,
+.menu button.preset-more {
+  display: none;
+}
+
+.menu-foot {
+  display: flex;
+  gap: 4px;
+}
+
+.menu-foot button {
+  flex: 1;
+  justify-content: center;
+  background: transparent;
+  padding: 5px 8px;
+}
+
+/* Touch: no hover, so saved presets get a ⋯ button that slides their actions in over the row. */
+@media (hover: none) {
+  .menu button {
+    -webkit-tap-highlight-color: transparent; /* otherwise the flash lands on ✕, which appears right under the finger */
+  }
+
+  .menu kbd {
+    display: none; /* no keyboard to press them on */
+  }
+
+  #presets-menu {
+    width: min(340px, calc(100vw - 24px));
+    padding: 6px;
+  }
+
+  #presets-menu > button,
+  .menu .preset-main {
+    min-height: 44px;
+  }
+
+  .menu .preset-main {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .menu-foot button {
+    min-height: 40px;
+  }
+
+  .preset-row:hover:not(:focus-within) {
+    background: transparent;
+  }
+
+  .menu button.preset-more {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    margin-right: 4px;
+    padding: 0;
+    background: transparent;
+    border-color: transparent;
+    color: #b9b8bd;
+  }
+
+  .preset-acts {
+    display: none;
+  }
+
+  .preset-row.open {
+    background: #34343a;
+  }
+
+  .preset-row.open .preset-acts {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    bottom: 4px;
+    left: 56px; /* the swatch stays visible so it's clear which preset this is */
+    display: flex;
+    gap: 4px;
+    padding: 0 0 0 4px;
+    background: #34343a;
+    opacity: 1;
+  }
+
+  .menu .preset-acts button {
+    flex: 1;
+    width: auto;
+    height: auto;
+    gap: 5px;
+    display: flex;
+    justify-content: center;
+    background: #2c2c31;
+    border-color: #3f3f46;
+    border-radius: 6px;
+    color: var(--fg);
+    font-size: 12px;
+  }
+
+  .menu .preset-acts button.del {
+    color: #f08a87;
+    background: #33262a;
+    border-color: #5a3434;
+  }
+
+  .preset-acts .lbl {
+    display: inline;
+  }
+
+  .menu .preset-acts button.x .lbl {
+    display: none;
+  }
+
+  .menu .preset-acts button.x {
+    display: grid;
+    flex: none;
+    width: 40px;
+    background: #44444c;
+    border-color: transparent;
+  }
 }
 
 .chips {
@@ -376,7 +634,7 @@ button.tool:hover {
 .hint {
   color: var(--muted);
   font-size: 11.5px;
-  margin: 6px 2px 12px;
+  margin: 8px 2px 14px;
 }
 
 .hint code {
@@ -525,6 +783,72 @@ button.primary {
   --tp-input-foreground-color: #e8e6e3;
   --tp-label-foreground-color: #9a99a0;
   --tp-groove-foreground-color: #35353b;
+  /* Vertical rhythm: 22px rows, 4px between rows, 6px of air inside and between sections. */
+  --tp-container-unit-size: 22px;
+  --tp-container-unit-spacing: 4px;
+  --tp-container-vertical-padding: 6px;
+}
+
+/* "Advanced" inside an effect: a muted disclosure link with a chevron, so it reads as
+   "more settings for this effect" rather than as another section header. */
+#pane .adv {
+  margin-top: 6px;
+  margin-left: 0; /* Tweakpane indents nested folders; these rows belong to the effect itself */
+}
+
+#pane .adv > .tp-fldv_b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 4px;
+}
+
+#pane .adv > .tp-fldv_b:hover,
+#pane .adv > .tp-fldv_b:focus-visible {
+  background: transparent;
+  color: var(--fg);
+}
+
+#pane .adv .tp-fldv_t {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 0;
+  font-size: 11px;
+}
+
+#pane .adv .tp-fldv_t::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin-right: 1px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+#pane .adv.tp-fldv-expanded > .tp-fldv_b .tp-fldv_t::before {
+  transform: translateY(-2px) rotate(45deg);
+}
+
+#pane .adv > .tp-fldv_b > .tp-fldv_m,
+#pane .adv > .tp-fldv_i {
+  display: none;
+}
+
+/* Its rows line up with the effect's own rows instead of being indented a level. */
+#pane .adv > .tp-fldv_c {
+  padding-left: 0;
+}
+
+/* Sections read as separate blocks instead of running into each other. */
+#pane .tp-rotv_c > .tp-fldv + .tp-fldv {
+  margin-top: 6px;
 }
 
 #pane .tp-sldv_k::after {
@@ -597,7 +921,7 @@ button.primary {
 /* ---------------- effect widgets ---------------- */
 
 #pane .wdg-host {
-  padding: 4px 4px 6px;
+  padding: 2px 4px 4px;
 }
 
 .wdg {
@@ -659,7 +983,9 @@ button.primary {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
-  padding: 0 2px;
+  padding: 0 4px;
+  /* Hug the control it explains, then leave room before the next one. */
+  margin: -2px 0 4px;
 }
 
 .wdg-tiles {
@@ -723,20 +1049,64 @@ button.primary {
 }
 
 .wdg-chips-label {
-  color: var(--muted);
+  color: var(--tp-label-foreground-color);
   font-size: 11px;
-  width: 34px;
+  width: 38px;
+  padding-left: 4px;
 }
 
 .wdg-chips button {
   flex: 1;
-  padding: 4px 0;
+  padding: 2px 0;
   font-size: 11.5px;
 }
 
 .wdg-chips button.active {
   border-color: var(--accent);
   background: #3a2a22;
+}
+
+/* Segmented icon control (align): equal boxes in a recessed track, the selected one raised. */
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--tp-input-background-color);
+  border-radius: 5px;
+}
+
+.seg button {
+  flex: 1 1 0;
+  display: grid;
+  place-items: center;
+  height: 18px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  transition: background 0.12s, color 0.12s;
+}
+
+.seg button:hover {
+  background: transparent;
+  color: var(--fg);
+}
+
+.seg button:active {
+  transform: none;
+}
+
+.seg button[aria-checked='true'] {
+  background: #3c3c43;
+  border-color: #4a4a52;
+  color: var(--fg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.seg button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 /* Reset-to-default icon beside each field. The slot is always reserved so fields don't shift when it appears. */
@@ -821,4 +1191,25 @@ button.rst:hover {
   color: var(--muted);
   pointer-events: none;
   user-select: none;
+}
+
+/* Phones: anchored to a mid-screen button, a dropdown would run off the edge, so menus become a bottom sheet. */
+@media (max-width: 600px) {
+  .menu,
+  #presets-menu,
+  .menu#export-menu {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    min-width: 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.55);
+  }
 }

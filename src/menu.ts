@@ -1,7 +1,9 @@
 /** Minimal popover menu: opens from a trigger, closes on outside click, Esc, or choosing an item. */
 export function attachMenu(wrap: HTMLElement, trigger: HTMLButtonElement, menu: HTMLElement) {
   const items = () =>
-    [...menu.querySelectorAll<HTMLElement>('[role^=menuitem]')].filter((el) => !el.hasAttribute('disabled'));
+    [...menu.querySelectorAll<HTMLElement>('[role^=menuitem]')].filter(
+      (el) => !el.hasAttribute('disabled') && !el.closest('[hidden]'),
+    );
 
   function setOpen(open: boolean, focusTrigger = false) {
     menu.hidden = !open;
@@ -13,11 +15,13 @@ export function attachMenu(wrap: HTMLElement, trigger: HTMLButtonElement, menu: 
   trigger.addEventListener('click', () => setOpen(menu.hidden === true));
 
   menu.addEventListener('click', (e) => {
-    // Choosing an action closes the menu; toggles and chips stay open so several can be changed.
-    if ((e.target as HTMLElement).closest('[role=menuitem]')) setOpen(false, true);
+    // Choosing an action closes the menu; toggles, chips and items marked data-stay keep it open.
+    const item = (e.target as HTMLElement).closest('[role=menuitem]');
+    if (item && !item.hasAttribute('data-stay')) setOpen(false, true);
   });
 
   // Document-level, so Esc still works after clicking a non-focusable part of the menu.
+  // Fields inside the menu stop Esc themselves when it means "cancel this edit".
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !menu.hidden) setOpen(false, true);
   });
@@ -29,6 +33,7 @@ export function attachMenu(wrap: HTMLElement, trigger: HTMLButtonElement, menu: 
   });
 
   wrap.addEventListener('keydown', (e) => {
+    if ((e.target as HTMLElement).closest('input')) return; // arrows move the caret in a text field
     if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !menu.hidden) {
       e.preventDefault();
       const list = items();
@@ -44,5 +49,5 @@ export function attachMenu(wrap: HTMLElement, trigger: HTMLButtonElement, menu: 
   document.addEventListener('pointerdown', (e) => {
     if (!menu.hidden && !wrap.contains(e.target as Node)) setOpen(false);
   });
-  return { close: () => setOpen(false) };
+  return { open: () => setOpen(true), close: () => setOpen(false), get isOpen() { return !menu.hidden; } };
 }

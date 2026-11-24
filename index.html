@@ -50,12 +50,34 @@
               <svg class="chev" width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 3.5l3 3 3-3" /></svg>
             </button>
             <div class="menu" id="presets-menu" role="menu" hidden>
-              <button role="menuitem" data-act="open">Open settings… <kbd data-kbd="mod+o"></kbd></button>
-              <button role="menuitem" data-act="save">Save settings <kbd data-kbd="mod+s"></kbd></button>
+              <button role="menuitem" data-stay id="save-preset">
+                <span class="mi">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                  Save current as preset…
+                </span>
+                <kbd data-kbd="mod+s"></kbd>
+              </button>
+              <form class="save-form" id="save-form" hidden>
+                <div class="save-row">
+                  <input id="save-name" type="text" maxlength="60" autocomplete="off" spellcheck="false" aria-label="Preset name" />
+                  <button type="submit" class="primary">Save</button>
+                </div>
+                <div class="save-hint">⏎ to save · Esc to cancel</div>
+              </form>
               <hr />
               <div id="preset-list"></div>
               <hr />
               <button class="menu-check" role="menuitemcheckbox" aria-checked="true" id="keep-text">Keep my text when switching</button>
+              <div class="menu-foot">
+                <button role="menuitem" data-act="import" title="Import presets from a file (⌘O)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m17 8-5-5-5 5" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></svg>
+                  Import…
+                </button>
+                <button role="menuitem" data-act="export-all" id="export-all" title="Download all your saved presets as one file">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /></svg>
+                  Export all…
+                </button>
+              </div>
             </div>
           </div>
 

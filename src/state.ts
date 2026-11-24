@@ -61,24 +61,44 @@ export function defaultState(): DesignState {
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
+/** Brand-poster palette the built-in presets draw from. */
+const PAL = {
+  cream: '#f8f2ee',
+  navy: '#182033',
+  lavender: '#d4c9fd',
+  blue: '#c7d9f1',
+  orange: '#ff5930',
+  violet: '#5a3ee0', // highlight on lavender, where orange would clash
+  white: '#fbf8f7',
+  ink: '#111111',
+};
+
 export const PRESETS: Record<string, DeepPartial<DesignState>> = {
   'Waving flag': {
     type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.1, fit: 0.5 },
+    color: { background: PAL.cream, text: PAL.ink, highlight: PAL.orange },
+    effects: {
+      shear: { enabled: true, skewX: 6 },
+      envelope: { enabled: true, style: 'flag', bend: 0.21, waves: 1, phase: -3 },
+      cloth: { enabled: true, depth: 0.55, waves: 1, phase: 20, diagonal: 0.3, pole: 0.35, turn: -6.5, tilt: 9, perspective: 0.7 },
+    },
+  },
+  Climb: {
+    type: { font: 'dmsans', textCase: 'sentence', tracking: -0.04, leading: 0.06, fit: 1 },
+    color: { background: PAL.blue, text: PAL.navy, highlight: PAL.orange },
+    effects: { shear: { enabled: true, skewX: 8, skewY: 4 } },
+  },
+  Swoosh: {
+    type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.1, fit: 0.5 },
+    color: { background: PAL.navy, text: PAL.white, highlight: PAL.orange },
     effects: {
       shear: { enabled: true, skewX: 9 },
       envelope: { enabled: true, style: 'flag', bend: 0.35, waves: 0.6, phase: -30, hPersp: 0.35 },
     },
   },
-  'Rippling lines': {
-    type: { font: 'dmsans', textCase: 'upper', tracking: -0.02, leading: 0.2 },
-    color: { background: '#c9c3f5', text: '#1b1d33' },
-    effects: {
-      shear: { enabled: true, skewX: 8 },
-      cloth: { enabled: true, scope: 'line', depth: 0.5, waves: 0.6, phase: 60, stagger: 40, turn: 20, tilt: 10, perspective: 0.6 },
-    },
-  },
   'Billowing sheet': {
     type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.1, fit: 0.5 },
+    color: { background: PAL.lavender, text: PAL.navy, highlight: PAL.violet },
     effects: {
       shear: { enabled: true, skewX: 9 },
       cloth: { enabled: true, depth: 0.9, waves: 0.75, phase: 40, turn: 12, tilt: 25, perspective: 0.8 },
@@ -86,28 +106,26 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
   },
   'Side turn': {
     type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.04, stretchX: 0.9 },
+    color: { background: PAL.cream, text: PAL.navy, highlight: PAL.orange },
     effects: {
       shear: { enabled: true, skewX: -4, skewY: 6 },
       cloth: { enabled: true, depth: 0.45, waves: 0.8, phase: 120, turn: -28, tilt: 0, perspective: 0.6 },
     },
   },
-  'Italic climb': {
-    type: { font: 'dmsans', textCase: 'sentence', tracking: -0.04, leading: 0.1 },
-    color: { background: '#d4deee', text: '#111111' },
-    effects: { shear: { enabled: true, skewX: 12, skewY: 14 } },
-  },
-  Uphill: {
-    type: { font: 'outfit', textCase: 'sentence', tracking: -0.04, leading: 0.1 },
-    color: { background: '#c9c3f5', text: '#1b1d33' },
-    effects: { shear: { enabled: true, skewX: 2, skewY: 12 } },
-  },
-  Italic: {
-    type: { font: 'dmsans', textCase: 'sentence', tracking: -0.04, leading: 0.1 },
-    effects: { shear: { enabled: true, skewX: 12, skewY: 4 } },
-  },
   Scattered: {
-    type: { font: 'outfit', textCase: 'sentence', tracking: -0.03 },
-    effects: { jitter: { enabled: true }, shear: { enabled: true, skewY: 8 } },
+    type: { font: 'outfit', weight: 800, textCase: 'upper', tracking: -0.03, leading: -0.075 },
+    color: { background: PAL.lavender, text: PAL.navy, highlight: PAL.violet },
+    effects: { jitter: { enabled: true, amount: 1.14, shiftX: 0.05 }, shear: { enabled: true, skewY: 8 } },
+  },
+};
+
+/** The starter style (formerly the "Rippling lines" preset, which is no longer in the menu). */
+const WELCOME_STYLE: DeepPartial<DesignState> = {
+  type: { font: 'dmsans', textCase: 'upper', tracking: -0.02, leading: 0.2 },
+  color: { background: PAL.lavender, text: PAL.navy, highlight: PAL.violet },
+  effects: {
+    shear: { enabled: true, skewX: 8 },
+    cloth: { enabled: true, scope: 'line', depth: 0.5, waves: 0.6, phase: 60, stagger: 40, turn: 20, tilt: 10, perspective: 0.6 },
   },
 };
 
@@ -115,7 +133,7 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
  *  Presets are style only, so the text lives here rather than in any preset. */
 export const WELCOME_TEXT = 'Bend it\nlike you\n*mean* it';
 export function applyWelcome(state: DesignState) {
-  applyPreset(state, { ...PRESETS['Rippling lines'], text: WELCOME_TEXT });
+  applyPreset(state, { ...WELCOME_STYLE, text: WELCOME_TEXT });
 }
 
 /* ---------------- deep assign (keeps object identity for UI bindings) ---------------- */

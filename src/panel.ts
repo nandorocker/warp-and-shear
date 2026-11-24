@@ -33,7 +33,19 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
   function bindR(folder: FolderApi, obj: object, def: object, key: string, params: BindParams = {}) {
     const rec = obj as Record<string, unknown>;
     const fallback = (def as Record<string, unknown>)[key];
+    // A trailing "°" in the label is a unit: show it inside the value field, where it can't be edited away.
+    const unit = typeof params.label === 'string' && /\s*°$/.test(params.label) ? '°' : '';
+    if (unit) params = { ...params, label: (params.label as string).replace(/\s*°$/, '') };
     const b = folder.addBinding(rec, key, params);
+    const field = unit ? b.element.querySelector('.tp-txtv') : null;
+    if (field) {
+      const u = document.createElement('span');
+      u.className = 'unit';
+      u.textContent = unit;
+      u.setAttribute('aria-hidden', 'true');
+      field.classList.add('has-unit');
+      field.append(u);
+    }
     if (typeof fallback !== 'number') return b; // reset only makes sense for numbers, not fonts, colors or toggles
 
     const noSlider = params.min === undefined || params.max === undefined;

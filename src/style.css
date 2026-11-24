@@ -285,6 +285,7 @@ button.primary:hover {
 }
 
 .preset small {
+  display: block; /* inline boxes ignore overflow/ellipsis, so a long effect list would widen the menu */
   color: var(--muted);
   font-size: 11px;
 }
@@ -388,17 +389,27 @@ button.primary:hover {
   padding: 0 7px;
 }
 
+/* The actions sit over the end of the row and only appear on hover or focus, so at rest the label gets the full
+   width. A short fade lifts them off the text they cover. */
 .preset-acts {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
-  flex: none;
+  align-items: center;
   gap: 1px;
-  padding-right: 4px;
+  padding: 0 4px 0 24px;
+  background: linear-gradient(90deg, transparent, #34343a 24px);
+  border-radius: 0 5px 5px 0;
   opacity: 0;
+  pointer-events: none; /* hidden buttons must not catch clicks meant for the row */
 }
 
 .preset-row:hover .preset-acts,
 .preset-row:focus-within .preset-acts {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .menu .preset-acts button {

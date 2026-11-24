@@ -26,6 +26,7 @@ import {
   FONTS,
   PRESETS,
   applyPreset,
+  applyWelcome,
   WEIGHT_NAMES,
   defaultState,
   fontFile,
@@ -53,10 +54,7 @@ try {
   /* ignore */
 }
 const state = loadSaved();
-if (firstVisit) {
-  applyPreset(state, PRESETS['Rippling lines']);
-  state.text = 'Bend it\nlike you\n*mean* it'; // presets are style only, so the welcome text is set here
-}
+if (firstVisit) applyWelcome(state);
 textEl.value = state.text;
 
 const history = createHistory(() => state, updateHistoryButtons);
@@ -713,7 +711,7 @@ const actions: Record<string, () => void> = {
   mutate: () => change(() => mutateEffects(state)),
   undo,
   redo,
-  reset: () => change(() => applyPreset(state, {}, true), 'Reset to defaults'), // type, colors, effects, output; text stays
+  reset: () => change(() => applyWelcome(state), 'Reset to start'), // back to exactly what a first visit shows
   import: importFile,
   'export-all': exportAll,
   svg: () => {

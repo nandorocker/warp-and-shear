@@ -111,6 +111,13 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
   },
 };
 
+/** What a first-time visitor sees, and what "Reset all" returns to: the starter style plus the welcome text.
+ *  Presets are style only, so the text lives here rather than in any preset. */
+export const WELCOME_TEXT = 'Bend it\nlike you\n*mean* it';
+export function applyWelcome(state: DesignState) {
+  applyPreset(state, { ...PRESETS['Rippling lines'], text: WELCOME_TEXT });
+}
+
 /* ---------------- deep assign (keeps object identity for UI bindings) ---------------- */
 
 /** Copy matching values from `src` into `target`. Unknown keys, nulls, arrays and type mismatches are skipped,

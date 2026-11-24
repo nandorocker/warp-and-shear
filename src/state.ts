@@ -53,7 +53,7 @@ export function defaultState(): DesignState {
     },
     color: { background: '#f4f1ec', text: '#111111', highlight: '#f26522' },
     effects: defaultEffects(),
-    output: { aspect: 'fit', padding: 0.08, transparent: false },
+    output: { aspect: 'fit', padding: 0.08, transparent: true },
   };
 }
 

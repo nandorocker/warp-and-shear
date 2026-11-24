@@ -253,7 +253,15 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     };
 
     const f = pane.addFolder({ title: def.label, expanded: p.enabled });
-    const on = f.addBinding(p, 'enabled', { label: 'on' });
+    // The on/off switch lives in the section's title bar (a sibling of the title button, so clicks on it
+    // don't also toggle the disclosure).
+    const power = document.createElement('button');
+    power.type = 'button';
+    power.className = 'fx-switch';
+    power.setAttribute('role', 'switch');
+    power.setAttribute('aria-label', `${def.label} on/off`);
+    power.append(Object.assign(document.createElement('span'), { className: 'fx-switch-thumb' }));
+    f.element.append(power);
     const rest: { disabled: boolean }[] = [
       bindR(f, p, defP, 'scope', { options: SCOPES }),
       bindR(f, p, defP, 'amount', { min: 0, max: AMOUNT_MAX, step: 0.01 }),
@@ -294,10 +302,18 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
       for (const key of secondary) rest.push(bind(details, key));
     }
 
-    const sync = () => rest.forEach((b) => (b.disabled = !p.enabled));
-    on.on('change', () => {
+    const sync = () => {
+      rest.forEach((b) => (b.disabled = !p.enabled));
+      power.setAttribute('aria-checked', String(p.enabled));
+      power.title = p.enabled ? 'On: click to turn off' : 'Off: click to turn on';
+      f.element.classList.toggle('fx-off', !p.enabled);
+    };
+    power.addEventListener('click', () => {
+      p.enabled = !p.enabled;
       sync();
       if (p.enabled) f.expanded = true;
+      widgets.forEach((w) => w.render());
+      hooks.onChange();
     });
     sync();
     syncers.push(() => {

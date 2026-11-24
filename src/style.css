@@ -846,6 +846,66 @@ button.primary {
   padding-left: 0;
 }
 
+/* Per-effect on/off switch in the section's title bar, left of the disclosure chevron. */
+#pane .tp-fldv:has(> .fx-switch) {
+  position: relative;
+}
+
+#pane .fx-switch {
+  position: absolute;
+  top: 4px;
+  right: 30px;
+  z-index: 1;
+  width: 30px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #3a3a41;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+#pane .fx-switch:hover {
+  background: #46464e;
+}
+
+#pane .fx-switch[aria-checked='true'] {
+  background: var(--accent);
+}
+
+#pane .fx-switch[aria-checked='true']:hover {
+  background: #ff7a3a;
+}
+
+#pane .fx-switch:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+#pane .fx-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #9a99a0;
+  transition:
+    transform 0.15s,
+    background-color 0.15s;
+}
+
+#pane .fx-switch[aria-checked='true'] .fx-switch-thumb {
+  background: #fff;
+  transform: translateX(14px);
+}
+
+/* A section that is off reads as inactive: dimmed title, no accent. */
+#pane .fx-off > .tp-fldv_b > .tp-fldv_t {
+  color: var(--muted);
+}
+
 /* Sections read as separate blocks instead of running into each other. */
 #pane .tp-rotv_c > .tp-fldv + .tp-fldv {
   margin-top: 6px;

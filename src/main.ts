@@ -53,7 +53,10 @@ try {
   /* ignore */
 }
 const state = loadSaved();
-if (firstVisit) applyPreset(state, PRESETS['Rippling lines']);
+if (firstVisit) {
+  applyPreset(state, PRESETS['Rippling lines']);
+  state.text = 'Bend it\nlike you\n*mean* it'; // presets are style only, so the welcome text is set here
+}
 textEl.value = state.text;
 
 const history = createHistory(() => state, updateHistoryButtons);
@@ -318,11 +321,9 @@ function showToast(message: string, action?: { label: string; run: () => void; h
 
 /* ---------------- menus ---------------- */
 
-const keepTextEl = $<HTMLButtonElement>('#keep-text');
 const transparentEl = $<HTMLButtonElement>('#transparent');
 const isOn = (el: HTMLElement) => el.getAttribute('aria-checked') === 'true';
 const setOn = (el: HTMLElement, on: boolean) => el.setAttribute('aria-checked', String(on));
-keepTextEl.addEventListener('click', () => setOn(keepTextEl, !isOn(keepTextEl)));
 const frameChips = $<HTMLDivElement>('#frame-chips');
 
 const presetsMenu = attachMenu($('#presets-wrap'), $<HTMLButtonElement>('#presets-btn'), $('#presets-menu'));
@@ -386,8 +387,13 @@ function presetLabel(name: string, p: Snapshot): HTMLElement {
   return wrap;
 }
 
+/** A preset is style only, so saving leaves the text out. */
+function withoutText({ text: _text, ...style }: typeof state) {
+  return style;
+}
+
 function applyPresetSettings(p: Snapshot) {
-  change(() => applyPreset(state, p, isOn(keepTextEl)));
+  change(() => applyPreset(state, p, true)); // presets are style only: your text stays
 }
 
 function actionButton(cls: string, label: string, icon: string, onClick: () => void): HTMLButtonElement {
@@ -582,7 +588,7 @@ savePresetBtn.addEventListener('click', openSaveForm);
 saveForm.addEventListener('submit', (e) => {
   e.preventDefault();
   history.commit();
-  const { preset, error } = addPreset(saveNameEl.value || suggestedName(), state);
+  const { preset, error } = addPreset(saveNameEl.value || suggestedName(), withoutText(state));
   closeSaveForm(!preset);
   renderPresets(preset?.id);
   if (error) showToast(error);

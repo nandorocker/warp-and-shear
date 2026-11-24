@@ -63,7 +63,6 @@ export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartia
 
 export const PRESETS: Record<string, DeepPartial<DesignState>> = {
   'Waving flag': {
-    text: 'The human\n^edge.',
     type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.1, fit: 0.5 },
     effects: {
       shear: { enabled: true, skewX: 9 },
@@ -71,7 +70,6 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
     },
   },
   'Rippling lines': {
-    text: 'Make it up.\nMake it\n^^work.',
     type: { font: 'dmsans', textCase: 'upper', tracking: -0.02, leading: 0.2 },
     color: { background: '#c9c3f5', text: '#1b1d33' },
     effects: {
@@ -80,7 +78,6 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
     },
   },
   'Billowing sheet': {
-    text: 'The human\n^edge.',
     type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.1, fit: 0.5 },
     effects: {
       shear: { enabled: true, skewX: 9 },
@@ -88,7 +85,6 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
     },
   },
   'Side turn': {
-    text: 'All\neyes\non *you.*',
     type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.04, stretchX: 0.9 },
     effects: {
       shear: { enabled: true, skewX: -4, skewY: 6 },
@@ -96,24 +92,20 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
     },
   },
   'Italic climb': {
-    text: 'Human\nedge.',
     type: { font: 'dmsans', textCase: 'sentence', tracking: -0.04, leading: 0.1 },
     color: { background: '#d4deee', text: '#111111' },
     effects: { shear: { enabled: true, skewX: 12, skewY: 14 } },
   },
   Uphill: {
-    text: 'Make it up.\nMake it\n^work.',
     type: { font: 'outfit', textCase: 'sentence', tracking: -0.04, leading: 0.1 },
     color: { background: '#c9c3f5', text: '#1b1d33' },
     effects: { shear: { enabled: true, skewX: 2, skewY: 12 } },
   },
   Italic: {
-    text: 'All eyes\non *you.*',
     type: { font: 'dmsans', textCase: 'sentence', tracking: -0.04, leading: 0.1 },
     effects: { shear: { enabled: true, skewX: 12, skewY: 4 } },
   },
   Scattered: {
-    text: 'All eyes\non *you.*',
     type: { font: 'outfit', textCase: 'sentence', tracking: -0.03 },
     effects: { jitter: { enabled: true }, shear: { enabled: true, skewY: 8 } },
   },

@@ -5,8 +5,6 @@ import {
   FONTS,
   PRESETS,
   applyPreset,
-  assignDeep,
-  defaultState,
   loadSaved,
   mutateEffects,
   randomizeEffects,
@@ -106,8 +104,8 @@ const panel = buildPanel($('#pane'), state, {
     panel.refresh();
     schedule();
   },
-  onResetEffects() {
-    assignDeep(state.effects, defaultState().effects);
+  onReset() {
+    applyPreset(state, {}, true); // type, colors, effects and output back to defaults; the typed text stays
     panel.refresh();
     schedule();
   },

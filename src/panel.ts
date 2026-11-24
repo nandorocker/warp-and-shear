@@ -10,7 +10,7 @@ type BindParams = NonNullable<Parameters<FolderApi['addBinding']>[2]>;
 export interface PanelHooks {
   onChange(): void;
   onPreset(name: string, keepText: boolean): void;
-  onResetEffects(): void;
+  onReset(): void;
   onSaveJson(): void;
   onLoadJson(): void;
 }
@@ -115,7 +115,7 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     if (ev.value) hooks.onPreset(ev.value, presetPick.keepText);
   });
   pf.addBinding(presetPick, 'keepText', { label: 'keep text' });
-  pf.addButton({ title: 'Reset effects' }).on('click', hooks.onResetEffects);
+  pf.addButton({ title: 'Reset all' }).on('click', hooks.onReset);
   pf.addButton({ title: 'Save settings (.json)' }).on('click', hooks.onSaveJson);
   pf.addButton({ title: 'Load settings (.json)' }).on('click', hooks.onLoadJson);
 

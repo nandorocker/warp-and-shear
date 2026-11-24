@@ -37,3 +37,7 @@ Add an `EffectDef` to `EFFECTS` in `src/core/effects.ts` and its parameter type 
 ## License
 
 Font files are distributed under the SIL Open Font License; see the license files in `public/fonts/`. The application code has no license specified yet.
+
+## Made by
+
+**Nando Rossi** · [nan.do](https://nan.do) · [@nandorocker](https://twitter.com/nandorocker)

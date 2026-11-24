@@ -3,38 +3,106 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#161618" />
     <title>Warp &amp; Shear</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <div class="app">
-      <aside class="side">
-        <header class="brand">Warp &amp; Shear</header>
-        <section class="text-block">
-          <textarea id="text" spellcheck="false" rows="5" aria-label="Text"></textarea>
-          <div class="tools">
-            <button data-act="hl" title="Wrap the selection in *…* (⌘B / Ctrl+B)">Highlight</button>
-            <button data-act="up" title="Add ^ to the current line(s)">Line bigger</button>
-            <button data-act="down" title="Add ~ to the current line(s)">Line smaller</button>
-          </div>
-          <p class="hint">
-            <code>*word*</code> highlight · <code>^</code> / <code>~</code> at line start = one size step bigger / smaller
-          </p>
-        </section>
-        <div id="pane"></div>
-      </aside>
-      <main class="stage">
-        <div class="bar">
-          <button data-act="randomize" class="primary" title="New random effect stack (R)">Randomize</button>
-          <button data-act="mutate" title="Nudge the current effects (M)">Mutate</button>
-          <span class="spacer"></span>
-          <button data-act="copy">Copy SVG</button>
-          <button data-act="svg">SVG</button>
-          <button data-act="png">PNG</button>
+      <header class="nav">
+        <h1 class="brand" aria-label="Warp &amp; Shear">
+          <span class="wm" aria-hidden="true">
+            <span style="transform: translateY(-3px) rotate(-6deg)">W</span>
+            <span style="transform: translateY(2px) rotate(4deg)">A</span>
+            <span style="transform: translateY(-2px) rotate(-3deg)">R</span>
+            <span style="transform: translateY(3px) rotate(5deg)">P</span>
+            <i>&amp;</i>
+            <span style="transform: skewX(-16deg)">SHEAR</span>
+          </span>
+        </h1>
+
+        <div class="nav-left">
+          <button class="ghost icon" data-act="undo" title="Undo (⌘Z)" aria-label="Undo" disabled>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L3 6.5l3 3" /><path d="M3 6.5h6.5a3.5 3.5 0 0 1 0 7H7" /></svg>
+          </button>
+          <button class="ghost icon" data-act="redo" title="Redo (⇧⌘Z)" aria-label="Redo" disabled>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5l3 3-3 3" /><path d="M13 6.5H6.5a3.5 3.5 0 0 0 0 7H9" /></svg>
+          </button>
+          <button class="outline" data-act="reset" title="Reset type, colors and effects to defaults. Your text is kept.">Reset all</button>
         </div>
-        <div class="canvas" id="canvas"><div class="art" id="art"></div></div>
-        <div class="status" id="status"></div>
-      </main>
+
+        <div class="nav-center">
+          <button data-act="randomize" title="New random effect stack (R)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5" /><circle cx="5.8" cy="5.8" r=".7" fill="currentColor" /><circle cx="10.2" cy="10.2" r=".7" fill="currentColor" /><circle cx="8" cy="8" r=".7" fill="currentColor" /></svg>
+            Randomize
+          </button>
+          <button data-act="mutate" title="Nudge the current effects a little (M)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8h11M5 5.3L2.3 8 5 10.7M11 5.3L13.7 8 11 10.7" /></svg>
+            Nudge
+          </button>
+        </div>
+
+        <div class="nav-right">
+          <div class="menu-wrap" id="presets-wrap">
+            <button id="presets-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="presets-menu">
+              Presets
+              <svg class="chev" width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 3.5l3 3 3-3" /></svg>
+            </button>
+            <div class="menu" id="presets-menu" role="menu" hidden>
+              <button role="menuitem" data-act="open">Open settings… <kbd data-kbd="mod+o"></kbd></button>
+              <button role="menuitem" data-act="save">Save settings <kbd data-kbd="mod+s"></kbd></button>
+              <hr />
+              <div id="preset-list"></div>
+              <hr />
+              <button class="menu-check" role="menuitemcheckbox" aria-checked="false" id="keep-text">Keep my text when switching</button>
+            </div>
+          </div>
+
+          <div class="menu-wrap split" id="export-wrap">
+            <button class="primary main" data-act="svg" title="Download SVG (⌘E)">Export SVG</button>
+            <button class="primary car" id="export-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="export-menu" aria-label="More export options">
+              <svg class="chev" width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 3.5l3 3 3-3" /></svg>
+            </button>
+            <div class="menu" id="export-menu" role="menu" hidden>
+              <button role="menuitem" data-act="svg">Download SVG <kbd data-kbd="mod+e"></kbd></button>
+              <button role="menuitem" data-act="png">Download PNG <kbd data-kbd="mod+shift+e"></kbd></button>
+              <button role="menuitem" data-act="copy">Copy SVG</button>
+              <hr />
+              <div class="menu-label" id="frame-label">Frame</div>
+              <div class="chips" role="group" aria-labelledby="frame-label" id="frame-chips"></div>
+              <button class="menu-check" role="menuitemcheckbox" aria-checked="false" id="transparent">Transparent background</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="body">
+        <aside class="side">
+          <section class="text-block">
+            <textarea id="text" spellcheck="false" rows="5" aria-label="Text"></textarea>
+            <div class="tools">
+              <button data-act="hl" title="Wrap the selection in *…* (⌘B / Ctrl+B)">Highlight</button>
+              <button data-act="up" title="Add ^ to the current line(s)">Line bigger</button>
+              <button data-act="down" title="Add ~ to the current line(s)">Line smaller</button>
+            </div>
+            <p class="hint">
+              <code>*word*</code> highlight · <code>^</code> / <code>~</code> at line start = one size step bigger / smaller
+            </p>
+          </section>
+          <div id="pane"></div>
+        </aside>
+        <main class="stage">
+          <div class="canvas" id="canvas"><div class="art" id="art"></div></div>
+          <footer class="status">
+            <span id="status"></span>
+            <span id="saved">✓ Autosaved</span>
+            <span class="toast" id="toast" role="status" hidden></span>
+            <span class="spacer"></span>
+            <span class="credit">by Nando Rossi</span>
+          </footer>
+        </main>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

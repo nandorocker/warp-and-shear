@@ -1,7 +1,7 @@
 import { Pane, type FolderApi } from 'tweakpane';
 import { AMOUNT_MAX, EFFECTS, type Control, type EffectsState } from './core/effects';
 import type { DesignState } from './core/render';
-import { FONTS, PRESETS, defaultState } from './state';
+import { FONTS, defaultState } from './state';
 import { clothWidget } from './widgets/cloth';
 import { envelopeWidget } from './widgets/envelope';
 
@@ -9,10 +9,6 @@ type BindParams = NonNullable<Parameters<FolderApi['addBinding']>[2]>;
 
 export interface PanelHooks {
   onChange(): void;
-  onPreset(name: string, keepText: boolean): void;
-  onReset(): void;
-  onSaveJson(): void;
-  onLoadJson(): void;
 }
 
 const SCOPES = { Block: 'block', Line: 'line', Glyph: 'glyph' };
@@ -105,19 +101,6 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     update();
     return b;
   }
-
-  /* Presets */
-  const pf = pane.addFolder({ title: 'Presets' });
-  const presetPick = { preset: '', keepText: false };
-  pf.addBinding(presetPick, 'preset', {
-    options: { '—': '', ...Object.fromEntries(Object.keys(PRESETS).map((n) => [n, n])) },
-  }).on('change', (ev) => {
-    if (ev.value) hooks.onPreset(ev.value, presetPick.keepText);
-  });
-  pf.addBinding(presetPick, 'keepText', { label: 'keep text' });
-  pf.addButton({ title: 'Reset all' }).on('click', hooks.onReset);
-  pf.addButton({ title: 'Save settings (.json)' }).on('click', hooks.onSaveJson);
-  pf.addButton({ title: 'Load settings (.json)' }).on('click', hooks.onLoadJson);
 
   /* Type */
   const tf = pane.addFolder({ title: 'Type' });
@@ -218,12 +201,7 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
 
   /* Output */
   const of = pane.addFolder({ title: 'Output', expanded: false });
-  bindR(of, state.output, defaults.output, 'aspect', {
-    label: 'frame',
-    options: { 'Fit content': 'fit', '1:1': '1:1', '4:5': '4:5', '3:4': '3:4', '16:9': '16:9', '9:16': '9:16' },
-  });
   bindR(of, state.output, defaults.output, 'padding', { min: 0, max: 0.5, step: 0.01 });
-  bindR(of, state.output, defaults.output, 'transparent', { label: 'no bg on export' });
   bindR(of, state.type, defaults.type, 'detail', { label: 'curve step', min: 0.5, max: 6, step: 0.1 });
 
   pane.on('change', () => {
@@ -235,7 +213,10 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
 
   return {
     refresh() {
+      // pane.refresh() emits a 'change' per updated binding; callers redraw once themselves.
+      refreshing = true;
       pane.refresh();
+      refreshing = false;
       syncers.forEach((s) => s());
       widgets.forEach((w) => w.render());
       updateResets();

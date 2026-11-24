@@ -20,7 +20,7 @@ Open the local URL printed by Vite and start making something lovely.
 | `~` at the start of a line | One size step down |
 | `\*`, `\^`, `\~` | A literal character |
 
-Press **R** to randomize or **M** to mutate when the text area isn’t focused.
+Shortcuts (outside the text area): **R** randomize, **M** nudge. Anywhere: **⌘Z** / **⇧⌘Z** undo and redo, **⌘S** save settings, **⌘O** open settings, **⌘E** export SVG, **⇧⌘E** export PNG (Ctrl instead of ⌘ on Windows and Linux). Inside the text area, **⌘Z** undoes typing. Everything else is undoable from the nav bar.
 
 ## Under the hood
 

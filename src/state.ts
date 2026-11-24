@@ -194,10 +194,12 @@ export function loadSaved(): DesignState {
   return state;
 }
 
-export function save(state: DesignState) {
+/** Returns false when the browser refused to store it (private mode, quota). */
+export function save(state: DesignState): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
+    return true;
   } catch {
-    /* ignore */
+    return false;
   }
 }

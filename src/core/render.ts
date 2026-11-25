@@ -1,5 +1,5 @@
 import type { Font } from 'opentype.js';
-import { EFFECTS, effectiveParams, type EffectDef, type EffectsState, type Frame, type Scope } from './effects';
+import { EFFECTS, effectiveParams, type EffectDef, type EffectsState, type Frame, type PointFn, type Scope } from './effects';
 import { emptyBox, growBox, isEmptyBox, type Box, type Pts } from './geom';
 import { layoutText, type GlyphItem, type TypeOptions } from './layout';
 import { applyCase, parseText, type TextCase } from './text';
@@ -18,6 +18,47 @@ export interface Scene {
   glyphs: GlyphItem[];
   /** Ink bounds after all effects. */
   ink: Box;
+  /** The block and its line bands as the slice warp sees them (whether or not it is on). */
+  slice: SliceLayout | null;
+}
+
+/** Block proportions and band boundaries (0 = block top, 1 = block bottom), for the slice widget. */
+export interface SliceLayout {
+  aspect: number;
+  bands: number[];
+}
+
+/**
+ * Band boundaries for a group of glyphs: the top of the first line, the middle of each gap between
+ * lines, the bottom of the last line. Also returns which band each line index falls in. Only lines
+ * with ink get a band; a line of spaces joins the nearest inked line's band.
+ */
+function lineBands(list: GlyphItem[]): { bands: number[]; bandOf: Map<number, number> } {
+  const boxes = new Map<number, Box>();
+  const inked = new Set<number>();
+  for (const g of list) {
+    let b = boxes.get(g.line);
+    if (!b) boxes.set(g.line, (b = emptyBox()));
+    growBox(b, g.frame);
+    if (g.contours.length) inked.add(g.line);
+  }
+  const all = [...boxes.keys()].filter((l) => !isEmptyBox(boxes.get(l)!)).sort((a, b) => a - b);
+  const lines = all.some((l) => inked.has(l)) ? all.filter((l) => inked.has(l)) : all;
+  const bandOf = new Map<number, number>();
+  for (const l of all) {
+    let best = 0;
+    lines.forEach((m, k) => {
+      if (Math.abs(m - l) < Math.abs(lines[best] - l)) best = k;
+    });
+    bandOf.set(l, best);
+  }
+  const bx = lines.map((l) => boxes.get(l)!);
+  const bands = bx.length ? [bx[0].y0] : [];
+  for (let k = 1; k < bx.length; k++) bands.push((bx[k - 1].y1 + bx[k].y0) / 2);
+  if (bx.length) bands.push(bx[bx.length - 1].y1);
+  // Keep boundaries in order even if earlier effects made lines overlap.
+  for (let k = 1; k < bands.length; k++) bands[k] = Math.max(bands[k], bands[k - 1] + 1e-3);
+  return { bands, bandOf };
 }
 
 function groupKey(g: GlyphItem, idx: number, scope: Scope): number {
@@ -25,7 +66,7 @@ function groupKey(g: GlyphItem, idx: number, scope: Scope): number {
 }
 
 /** Runs one effect over all glyphs, using the current bounds of each scope element as its frame. */
-function applyEffect(glyphs: GlyphItem[], scope: Scope, fn: (x: number, y: number, f: Frame) => [number, number]) {
+function applyEffect(glyphs: GlyphItem[], scope: Scope, fn: PointFn) {
   const groups = new Map<number, GlyphItem[]>();
   glyphs.forEach((g, idx) => {
     const key = groupKey(g, idx, scope);
@@ -46,17 +87,19 @@ function applyEffect(glyphs: GlyphItem[], scope: Scope, fn: (x: number, y: numbe
     if (isEmptyBox(b)) continue;
     const w = Math.max(b.x1 - b.x0, 1e-3);
     const h = Math.max(b.y1 - b.y0, 1e-3);
-    const frame: Frame = { x0: b.x0, y0: b.y0, w, h, cx: b.x0 + w / 2, cy: b.y0 + h / 2, i, n };
+    const { bands, bandOf } = lineBands(list);
+    const frame: Frame = { x0: b.x0, y0: b.y0, w, h, cx: b.x0 + w / 2, cy: b.y0 + h / 2, i, n, bands };
     if (hasInk) i++;
 
-    const run = (pts: Pts) => {
-      for (let j = 0; j < pts.length; j += 2) {
-        const [x, y] = fn(pts[j], pts[j + 1], frame);
-        pts[j] = x;
-        pts[j + 1] = y;
-      }
-    };
     for (const g of list) {
+      const band = bandOf.get(g.line) ?? 0;
+      const run = (pts: Pts) => {
+        for (let j = 0; j < pts.length; j += 2) {
+          const [x, y] = fn(pts[j], pts[j + 1], frame, band);
+          pts[j] = x;
+          pts[j + 1] = y;
+        }
+      };
       run(g.frame);
       g.contours.forEach(run);
     }
@@ -66,9 +109,11 @@ function applyEffect(glyphs: GlyphItem[], scope: Scope, fn: (x: number, y: numbe
 export function buildScene(font: Font, s: DesignState): Scene {
   const lines = applyCase(parseText(s.text), s.type.textCase);
   const glyphs = layoutText(font, lines, s.type);
+  let slice: SliceLayout | null = null;
 
   for (const def of EFFECTS) {
     const p = s.effects[def.id as keyof EffectsState];
+    if (def.id === 'slice') slice = sliceLayout(glyphs);
     if (!p.enabled) continue;
     // Each def is typed against its own params; the registry lookup is by id.
     const d = def as unknown as EffectDef;
@@ -78,7 +123,17 @@ export function buildScene(font: Font, s: DesignState): Scene {
 
   const ink = emptyBox();
   for (const g of glyphs) for (const c of g.contours) growBox(ink, c);
-  return { glyphs, ink };
+  return { glyphs, ink, slice };
+}
+
+function sliceLayout(glyphs: GlyphItem[]): SliceLayout | null {
+  const b = emptyBox();
+  for (const g of glyphs) growBox(b, g.frame);
+  if (isEmptyBox(b)) return null;
+  const w = Math.max(b.x1 - b.x0, 1e-3);
+  const h = Math.max(b.y1 - b.y0, 1e-3);
+  const { bands } = lineBands(glyphs);
+  return { aspect: w / h, bands: bands.map((y) => (y - b.y0) / h) };
 }
 
 const ASPECTS: Record<Exclude<Aspect, 'fit'>, number> = {

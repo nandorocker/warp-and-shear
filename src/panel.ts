@@ -1,14 +1,17 @@
 import { Pane, type FolderApi } from 'tweakpane';
 import { AMOUNT_MAX, EFFECTS, type Control, type EffectsState } from './core/effects';
-import type { DesignState } from './core/render';
+import type { DesignState, SliceLayout } from './core/render';
 import { FONTS, WEIGHT_NAMES, defaultState, nearestWeight, type FontId } from './state';
 import { clothWidget } from './widgets/cloth';
 import { envelopeWidget } from './widgets/envelope';
+import { sliceWidget } from './widgets/slice';
 
 type BindParams = NonNullable<Parameters<FolderApi['addBinding']>[2]>;
 
 export interface PanelHooks {
   onChange(): void;
+  /** Line bands of the current text, for the slice widget (null until the first draw). */
+  sliceLayout(): SliceLayout | null;
 }
 
 const SCOPES = { Block: 'block', Line: 'line', Glyph: 'glyph' };
@@ -260,17 +263,19 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
     power.className = 'fx-check';
     power.setAttribute('aria-label', `${def.label} on/off`);
     f.element.append(power);
-    const rest: { disabled: boolean }[] = [
-      bindR(f, p, defP, 'scope', { options: SCOPES }),
-      bindR(f, p, defP, 'amount', { min: 0, max: AMOUNT_MAX, step: 0.01 }),
-    ];
+    const rest: { disabled: boolean }[] = [];
+    // Slice warp works on the whole block: its rails are the boundaries between lines.
+    if (def.id !== 'slice') rest.push(bindR(f, p, defP, 'scope', { options: SCOPES }));
+    rest.push(bindR(f, p, defP, 'amount', { min: 0, max: AMOUNT_MAX, step: 0.01 }));
 
     const widget =
       def.id === 'envelope'
         ? envelopeWidget(state.effects.envelope, editFromWidget)
         : def.id === 'cloth'
           ? clothWidget(state.effects.cloth, editFromWidget)
-          : null;
+          : def.id === 'slice'
+            ? sliceWidget(state.effects.slice, hooks.sliceLayout, editFromWidget)
+            : null;
     if (widget) {
       // A separator blade keeps the widget in order inside the folder.
       const host = f.addBlade({ view: 'separator' });
@@ -333,6 +338,10 @@ export function buildPanel(container: HTMLElement, state: DesignState, hooks: Pa
   });
 
   return {
+    /** Redraw the effect widgets (e.g. after the text changed shape). */
+    renderWidgets() {
+      widgets.forEach((w) => w.render());
+    },
     refresh() {
       // pane.refresh() emits a 'change' per updated binding; callers redraw once themselves.
       refreshing = true;

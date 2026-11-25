@@ -1048,6 +1048,55 @@ button.primary {
   fill: var(--accent);
 }
 
+.wdg-handle.pin {
+  cursor: ns-resize;
+}
+
+.wdg-slice {
+  cursor: default;
+}
+
+.wdg-rail {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.wdg-rail.edge {
+  stroke-dasharray: none;
+  stroke-opacity: 0;
+}
+
+.wdg-rail-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  vector-effect: non-scaling-stroke;
+  cursor: ns-resize;
+}
+
+.wdg-rail-hit:hover,
+.wdg-rail-hit.active {
+  stroke: rgba(242, 101, 34, 0.18);
+}
+
+.wdg-rail-hit:hover + .wdg-rail,
+.wdg-rail-hit.active + .wdg-rail {
+  stroke-dasharray: none;
+  stroke-opacity: 1;
+}
+
+.wdg-handle.active {
+  fill: var(--accent);
+}
+
+.wdg-slice [hidden] {
+  display: none;
+}
+
 .wdg-hint {
   color: var(--muted);
   font-size: 11px;

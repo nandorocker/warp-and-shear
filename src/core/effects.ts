@@ -13,9 +13,15 @@ export interface Frame {
   /** Index of this element within its scope (line 0, 1, 2… / glyph 0, 1, 2…). */
   i: number;
   n: number;
+  /**
+   * Line bands inside this frame, as y positions of the boundaries between them (lines + 1 values):
+   * the top of the first line, the middle of each gap between lines, the bottom of the last line.
+   */
+  bands?: number[];
 }
 
-export type PointFn = (x: number, y: number, f: Frame) => [number, number];
+/** `band` is the index of the point's line among the frame's `bands` (0 when the frame has one line). */
+export type PointFn = (x: number, y: number, f: Frame, band?: number) => [number, number];
 
 export interface BaseParams {
   enabled: boolean;
@@ -116,7 +122,7 @@ export interface ShearParams extends BaseParams {
 const shear: EffectDef<ShearParams> = {
   id: 'shear',
   label: 'Shear',
-  defaults: { enabled: true, scope: 'block', amount: 1, skewX: 0, skewY: 0, rotate: 0 },
+  defaults: { enabled: false, scope: 'block', amount: 1, skewX: 0, skewY: 0, rotate: 0 },
   controls: {
     skewX: { label: 'lean °', min: -45, max: 45, step: 0.5, random: [-6, 20] },
     skewY: { label: 'rise °', min: -45, max: 45, step: 0.5, random: [-18, 18] },
@@ -310,12 +316,201 @@ const cloth: EffectDef<ClothParams> = {
   },
 };
 
-/** Fixed pipeline order: per-glyph chaos → shear → 2D envelope → 3D cloth. */
-export { cloth, envelope, jitter, shear };
-export const EFFECTS = [jitter, shear, envelope, cloth] as const;
+/* ------------------------------------------------------------------ */
+
+/**
+ * One rail: a horizontal guide line at a band boundary. Its two ends move freely (that tilts the rail
+ * and leans the side edges); the three pins between them only move up and down, measured from the
+ * straight line between the ends, so tilting a rail keeps its bumps. Offsets are in block width (x)
+ * and block height (y).
+ */
+export interface Rail {
+  lx: number;
+  ly: number;
+  rx: number;
+  ry: number;
+  p1: number;
+  p2: number;
+  p3: number;
+}
+
+export const RAIL_PINS = ['p1', 'p2', 'p3'] as const;
+/** Rails stored by role, so the top and bottom keep their shape when lines are added or removed. */
+export const MID_RAILS = 7;
+export type RailKey = 'top' | 'bottom' | `m${number}`;
+
+export function railKey(k: number, bands: number): RailKey {
+  return k === 0 ? 'top' : k >= bands ? 'bottom' : `m${k}`;
+}
+
+/**
+ * Named shapes layered on top of the hand-drawn rails. Each one moves many rail values at once,
+ * following the stack of lines, so they work for any line count (and Randomize / Nudge / Amount
+ * can drive them like any other slider).
+ */
+export interface SliceShapes {
+  /** Left side taller, right side shorter (negative: the reverse). Percent of block height. */
+  taper: number;
+  /** Lower lines taller, upper lines shorter (negative: the reverse); the outer edges stay put. */
+  grow: number;
+  /** Outer edges pulled in at the middle (negative: pushed out); the edges between lines stay straight. */
+  pinch: number;
+  /** Every edge waves, alternating line by line, so lines swell and pinch against each other. */
+  ripple: number;
+  /** Lines lean alternately left and right, so the sides zigzag. Percent of block width. */
+  zigzag: number;
+  /** Middle lines pushed sideways, so the sides curve like a bow. Percent of block width. */
+  bow: number;
+}
+
+export const SLICE_SHAPES = ['taper', 'grow', 'pinch', 'ripple', 'zigzag', 'bow'] as const;
+
+export interface SliceParams extends BaseParams, SliceShapes {
+  rails: Record<string, Rail>;
+}
+
+const flatRail = (): Rail => ({ lx: 0, ly: 0, rx: 0, ry: 0, p1: 0, p2: 0, p3: 0 });
+
+function defaultRails(): Record<string, Rail> {
+  const r: Record<string, Rail> = { top: flatRail(), bottom: flatRail() };
+  for (let k = 1; k <= MID_RAILS; k++) r[`m${k}`] = flatRail();
+  return r;
+}
+
+/**
+ * The rails actually used for `bands` bands (bands + 1 rails, top to bottom): each hand-drawn rail
+ * scaled by Amount, plus the named shapes (which arrive already scaled by `effectiveParams`).
+ */
+export function sliceRails(p: SliceParams, bands: number): Rail[] {
+  const a = p.amount;
+  const [taper, grow, pinch, ripple, zigzag, bow] = SLICE_SHAPES.map((k) => p[k] / 100);
+  const out: Rail[] = [];
+  for (let k = 0; k <= bands; k++) {
+    const h = p.rails[railKey(k, bands)] ?? flatRail();
+    const s = bands ? k / bands : 0; // 0 at the top rail, 1 at the bottom one
+    const c = s - 0.5;
+    const hump = 4 * s * (1 - s); // 0 at the outer rails, 1 halfway down
+    const alt = k % 2 ? -1 : 1;
+    const edge = k === 0 ? 1 : k === bands ? -1 : 0; // top pins move down, bottom pins up
+    const sag = pinch * edge;
+    out.push({
+      lx: h.lx * a + (zigzag * alt) / 2 + bow * hump,
+      rx: h.rx * a + (zigzag * alt) / 2 + bow * hump,
+      ly: h.ly * a + taper * c - (grow * hump) / 2,
+      ry: h.ry * a - taper * c - (grow * hump) / 2,
+      p1: h.p1 * a + sag * 0.75 + ripple * alt,
+      p2: h.p2 * a + sag,
+      p3: h.p3 * a + sag * 0.75 - ripple * alt,
+    });
+  }
+  return out;
+}
+
+/** The five points a rail's curve passes through (ends + pins), in frame coordinates. */
+export function railPoints(r: Rail, y: number, f: Frame): [number, number][] {
+  const L: [number, number] = [f.x0 + r.lx * f.w, y + r.ly * f.h];
+  const R: [number, number] = [f.x0 + f.w + r.rx * f.w, y + r.ry * f.h];
+  const pts: [number, number][] = [L];
+  RAIL_PINS.forEach((k, j) => {
+    const t = (j + 1) / (RAIL_PINS.length + 1);
+    pts.push([L[0] + (R[0] - L[0]) * t, L[1] + (R[1] - L[1]) * t + r[k] * f.h]);
+  });
+  pts.push(R);
+  return pts;
+}
+
+/**
+ * Smooth curve through evenly spaced points (Catmull-Rom), at u in 0..1; straight beyond the ends.
+ * Points spaced evenly on a straight line give that line back exactly, so a flat rail is no warp.
+ */
+export function railAt(P: readonly [number, number][], u: number): [number, number] {
+  const n = P.length - 1;
+  if (u <= 0) return [P[0][0] + n * (P[1][0] - P[0][0]) * u, P[0][1] + n * (P[1][1] - P[0][1]) * u];
+  if (u >= 1) {
+    const e = u - 1;
+    return [P[n][0] + n * (P[n][0] - P[n - 1][0]) * e, P[n][1] + n * (P[n][1] - P[n - 1][1]) * e];
+  }
+  const s = Math.min(n - 1, Math.floor(u * n));
+  const t = u * n - s;
+  const p1 = P[s];
+  const p2 = P[s + 1];
+  const p0 = s > 0 ? P[s - 1] : [2 * p1[0] - p2[0], 2 * p1[1] - p2[1]];
+  const p3 = s + 2 <= n ? P[s + 2] : [2 * p2[0] - p1[0], 2 * p2[1] - p1[1]];
+  const t2 = t * t;
+  const t3 = t2 * t;
+  const cr = (a: number, b: number, c: number, d: number) =>
+    0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+  return [cr(p0[0], p1[0], p2[0], p3[0]), cr(p0[1], p1[1], p2[1], p3[1])];
+}
+
+/**
+ * Slice warp: the block is cut into one band per line, and each band boundary is a rail. A point
+ * keeps its place across its band (u) and between the rails above and below it (v), so the shared
+ * edge between two lines stays a clean line however hard the outer rails bend. Lines are never
+ * split across bands: a descender follows its own line's rails.
+ */
+const slice: EffectDef<SliceParams> = {
+  id: 'slice',
+  label: 'Slice warp',
+  defaults: {
+    enabled: false,
+    scope: 'block',
+    amount: 1,
+    taper: 0,
+    grow: 0,
+    pinch: 0,
+    ripple: 0,
+    zigzag: 0,
+    bow: 0,
+    rails: defaultRails(),
+  },
+  // Whole percents: Tweakpane snaps from `min`, and a decimal step would leave 0 as a tiny non-zero value.
+  controls: {
+    taper: { label: 'taper %', min: -60, max: 60, step: 1, random: [-30, 30] },
+    grow: { label: 'grow %', min: -60, max: 60, step: 1, random: [-30, 30] },
+    pinch: { label: 'pinch %', min: -30, max: 30, step: 1, random: [-10, 10] },
+    ripple: { label: 'ripple %', min: -20, max: 20, step: 1, random: [-6, 6] },
+    zigzag: { label: 'zigzag %', min: -30, max: 30, step: 1, random: [-8, 8] },
+    bow: { label: 'bow %', min: -30, max: 30, step: 1, random: [-10, 10] },
+  },
+  strength: SLICE_SHAPES,
+  primary: [],
+  make: (p) => {
+    const cache = new WeakMap<Frame, [number, number][][]>();
+    const railsFor = (f: Frame) => {
+      let rs = cache.get(f);
+      if (!rs) {
+        const ys = f.bands && f.bands.length >= 2 ? f.bands : [f.y0, f.y0 + f.h];
+        const nb = ys.length - 1;
+        const rails = sliceRails(p, nb);
+        rs = ys.map((y, k) => railPoints(rails[k], y, f));
+        cache.set(f, rs);
+      }
+      return rs;
+    };
+    return (x, y, f, band = 0) => {
+      const rs = railsFor(f);
+      const ys = f.bands && f.bands.length >= 2 ? f.bands : [f.y0, f.y0 + f.h];
+      const b = Math.min(Math.max(band, 0), rs.length - 2);
+      const u = (x - f.x0) / f.w;
+      const v = (y - ys[b]) / (ys[b + 1] - ys[b] || 1e-6);
+      const A = railAt(rs[b], u);
+      const B = railAt(rs[b + 1], u);
+      return [A[0] + (B[0] - A[0]) * v, A[1] + (B[1] - A[1]) * v];
+    };
+  },
+};
+
+/**
+ * Fixed pipeline order: per-glyph chaos → slice → shear → 2D envelope → 3D cloth.
+ * Slice comes before shear so its bands are measured on level lines (rise or rotate would make them overlap).
+ */
+export { cloth, envelope, jitter, shear, slice };
+export const EFFECTS = [jitter, slice, shear, envelope, cloth] as const;
 
 export interface EffectsState {
   jitter: JitterParams;
+  slice: SliceParams;
   shear: ShearParams;
   envelope: EnvelopeParams;
   cloth: ClothParams;

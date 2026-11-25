@@ -24,7 +24,9 @@ Shortcuts (outside the text area): **R** randomize, **M** nudge. Anywhere: **⌘
 
 ## Under the hood
 
-Built with TypeScript, Vite, opentype.js, and Tweakpane. Effects are applied in order: Jitter → Shear → Envelope → Cloth. Their scope can be the whole block, a line, or an individual glyph.
+Built with TypeScript, Vite, opentype.js, and Tweakpane. Effects are applied in order: Jitter → Shear → Slice → Envelope → Cloth. Their scope can be the whole block, a line, or an individual glyph (Slice always works on the whole block).
+
+**Slice warp** cuts the block into one band per line. Every band boundary is a *rail*: drag its square ends to tilt it or lean the sides, the three round pins between them to bend it (a smooth curve runs through them), or the rail itself to move it. A line stretches to fill the space between its two rails, so the edge two lines share stays one clean line however much the outer rails bend. Rails are stored by role (top, between lines, bottom), so a shape carries over when you change the text. Under **Advanced**, named shapes move many rail values at once and add to what you drew: *taper* (one side taller), *grow* (lower lines taller), *pinch* (outer edges pulled in), *ripple* (edges wave against each other), *zigzag* (lines lean alternately) and *bow* (the sides curve).
 
 ### Add a font
 

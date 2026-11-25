@@ -51,7 +51,8 @@ export function defaultState(): DesignState {
       stepRatio: 1.4,
       detail: 1.5,
     },
-    color: { background: '#f4f1ec', text: '#111111', highlight: '#f26522' },
+    // Neutral on purpose (this is what Reset all returns to); only the highlight keeps our violet.
+    color: { background: '#ffffff', text: '#111111', highlight: '#5a3ee0' }, // highlight = PAL.violet
     effects: defaultEffects(),
     output: { aspect: 'fit', padding: 0.08, transparent: true },
   };
@@ -112,6 +113,26 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
       cloth: { enabled: true, depth: 0.45, waves: 0.8, phase: 120, turn: -28, tilt: 0, perspective: 0.6 },
     },
   },
+  /* Slice warp looks: rails are stored by role (top, between lines, bottom), so they carry over to any text. */
+  'Wavy hem': {
+    type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.05, stepRatio: 1.45 },
+    color: { background: PAL.lavender, text: PAL.navy, highlight: PAL.violet },
+    effects: {
+      shear: { enabled: true, skewX: 7 },
+      slice: {
+        enabled: true,
+        rails: {
+          m2: { ry: 0.02, p1: -0.01, p3: 0.01 },
+          bottom: { ly: 0.12, ry: -0.03, p1: 0.05, p2: -0.02, p3: 0.03 },
+        },
+      },
+    },
+  },
+  Crescendo: {
+    type: { font: 'archivo', textCase: 'upper', tracking: -0.01, leading: 0.05, stretchX: 0.7, fit: 1 },
+    color: { background: PAL.cream, text: PAL.navy, highlight: PAL.orange },
+    effects: { slice: { enabled: true, taper: 20, grow: 30, pinch: 6, zigzag: 6 } },
+  },
   Scattered: {
     type: { font: 'outfit', weight: 800, textCase: 'upper', tracking: -0.03, leading: -0.075 },
     color: { background: PAL.lavender, text: PAL.navy, highlight: PAL.violet },
@@ -119,21 +140,19 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
   },
 };
 
-/** The starter style (formerly the "Rippling lines" preset, which is no longer in the menu). */
-const WELCOME_STYLE: DeepPartial<DesignState> = {
-  type: { font: 'dmsans', textCase: 'upper', tracking: -0.02, leading: 0.2 },
-  color: { background: PAL.lavender, text: PAL.navy, highlight: PAL.violet },
-  effects: {
-    shear: { enabled: true, skewX: 8 },
-    cloth: { enabled: true, scope: 'line', depth: 0.5, waves: 0.6, phase: 60, stagger: 40, turn: 20, tilt: 10, perspective: 0.6 },
-  },
-};
-
-/** What a first-time visitor sees, and what "Reset all" returns to: the starter style plus the welcome text.
- *  Presets are style only, so the text lives here rather than in any preset. */
+/** The text a first-time visitor sees (and what Reset all puts back). Presets are style only, so it lives here. */
 export const WELCOME_TEXT = 'Bend it\nlike you\n*mean* it';
-export function applyWelcome(state: DesignState) {
-  applyPreset(state, { ...WELCOME_STYLE, text: WELCOME_TEXT });
+
+/** First visit: the welcome text in one of the built-in presets, picked at random so the app opens on a real look. */
+export function applyWelcome(state: DesignState, pick = Math.random()) {
+  const names = Object.keys(PRESETS);
+  const name = names[Math.min(names.length - 1, Math.floor(pick * names.length))];
+  applyPreset(state, { ...PRESETS[name], text: WELCOME_TEXT });
+}
+
+/** "Reset all": every setting back to its plain default (neutral colors, no effects), with the welcome text. */
+export function applyReset(state: DesignState) {
+  applyPreset(state, { text: WELCOME_TEXT });
 }
 
 /* ---------------- deep assign (keeps object identity for UI bindings) ---------------- */
@@ -175,6 +194,7 @@ function legacyWeight(state: DesignState, raw: unknown) {
 
 function sanitize(state: DesignState) {
   for (const p of Object.values(state.effects)) p.amount = clampAmount(p.amount);
+  state.effects.slice.scope = 'block'; // its rails are line boundaries, so it only makes sense on the block
   if (!(state.type.font in FONTS)) state.type.font = defaultState().type.font; // the renderer and menus index FONTS directly
   state.type.weight = nearestWeight(state.type.font as FontId, state.type.weight);
 }
@@ -213,7 +233,8 @@ export function randomizeEffects(state: DesignState) {
   }
   const scopes = ['block', 'line', 'glyph'] as const;
   const pick = <T>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)];
-  for (const p of Object.values(state.effects)) p.amount = 1;
+  // Slice's hand-drawn rails (and its amount) are left alone; only its named shapes are rerolled.
+  for (const [id, p] of Object.entries(state.effects)) if (id !== 'slice') p.amount = 1;
   state.effects.jitter.enabled = Math.random() < 0.25;
   state.effects.shear.enabled = Math.random() < 0.85;
   state.effects.envelope.enabled = Math.random() < 0.5;

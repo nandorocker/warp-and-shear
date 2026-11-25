@@ -26,6 +26,7 @@ import {
   FONTS,
   PRESETS,
   applyPreset,
+  applyReset,
   applyWelcome,
   WEIGHT_NAMES,
   defaultState,
@@ -112,7 +113,10 @@ async function draw() {
   // A slow font load can finish after the choice moved on: draw with the current one instead of a stale result.
   if (`${state.type.font}:${state.type.weight}` !== wanted) return requestDraw();
   const t0 = performance.now();
+  const prevSlice = JSON.stringify(scene?.slice ?? null);
   scene = buildScene(font, state);
+  // The slice widget mirrors the text's lines: redraw it when they change shape.
+  if (JSON.stringify(scene.slice) !== prevSlice) panel.renderWidgets();
   // Preview uses lower precision; export uses full.
   artEl.innerHTML = sceneToSvg(scene, state, { precision: 1 });
   fitArt();
@@ -241,7 +245,7 @@ textEl.addEventListener('keydown', (e) => {
 
 type Snapshot = Parameters<typeof applyPreset>[1];
 
-const panel = buildPanel($('#pane'), state, { onChange: schedule });
+const panel = buildPanel($('#pane'), state, { onChange: schedule, sliceLayout: () => scene?.slice ?? null });
 history.rebase(); // Tweakpane may have normalised values while binding; make that the baseline
 
 /** Re-sync every control with `state` after it was replaced wholesale (preset, undo, load…). */
@@ -711,7 +715,7 @@ const actions: Record<string, () => void> = {
   mutate: () => change(() => mutateEffects(state)),
   undo,
   redo,
-  reset: () => change(() => applyWelcome(state), 'Reset to start'), // back to exactly what a first visit shows
+  reset: () => change(() => applyReset(state), 'Reset everything'), // plain defaults, not the first-visit style
   import: importFile,
   'export-all': exportAll,
   svg: () => {

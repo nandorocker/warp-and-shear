@@ -96,7 +96,7 @@ export function clothWidget(p: ClothParams, onEdit: () => void) {
     const ph0 = p.phase;
     return ({ dx, dy, width, height }) => {
       const dyView = (dy / height) * STRIP.h;
-      if (live) p.depth = Math.round(clamp(d0 - (sign * dyView) / (0.25 * BOX.w * STRIP_SCALE) / amt, 0, 1.5) * 100) / 100;
+      if (live) p.depth = Math.round(clamp(d0 - (sign * dyView) / (0.25 * BOX.w * STRIP_SCALE) / amt, -1.5, 1.5) * 100) / 100;
       p.phase = Math.round(wrapDeg(ph0 - (360 * p.waves * dx) / width));
       onEdit();
     };

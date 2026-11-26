@@ -273,7 +273,7 @@ const cloth: EffectDef<ClothParams> = {
     perspective: 0.6,
   },
   controls: {
-    depth: { min: 0, max: 1.5, step: 0.01, random: [0.2, 0.9] },
+    depth: { min: -1.5, max: 1.5, step: 0.01, random: [0.2, 0.9] },
     waves: { min: 0.1, max: 4, step: 0.05, random: [0.4, 1.8] },
     phase: { label: 'phase °', min: -180, max: 180, step: 1 },
     stagger: { label: 'stagger °', min: -180, max: 180, step: 1, random: [-45, 45] },

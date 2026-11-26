@@ -29,7 +29,17 @@
           <button class="ghost icon" data-act="redo" title="Redo (⇧⌘Z)" aria-label="Redo" disabled>
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5l3 3-3 3" /><path d="M13 6.5H6.5a3.5 3.5 0 0 0 0 7H9" /></svg>
           </button>
-          <button class="outline" data-act="reset" title="Reset every setting and the text to plain defaults: neutral colors, no effects.">Reset all</button>
+          <div class="menu-wrap split" id="reset-wrap">
+            <button class="outline main" data-act="reset" title="Restore default settings and clear the text">Reset all</button>
+            <button class="outline car" id="reset-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="reset-menu" aria-label="More reset options">
+              <svg class="chev" width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 3.5l3 3 3-3" /></svg>
+            </button>
+            <div class="menu reset-menu" id="reset-menu" role="menu" aria-labelledby="reset-btn" hidden>
+              <button role="menuitem" data-act="reset-styles" title="Reset typography and colors">Reset styles</button>
+              <button role="menuitem" data-act="reset-effects">Reset effects</button>
+              <button role="menuitem" data-act="reset-text">Reset text</button>
+            </div>
+          </div>
         </div>
 
         <div class="nav-center">
@@ -123,7 +133,35 @@
           <div id="pane"></div>
         </aside>
         <main class="stage">
-          <div class="canvas" id="canvas"><div class="art" id="art"></div></div>
+          <div class="canvas" id="canvas">
+            <div class="art" id="art" hidden></div>
+            <p class="canvas-placeholder" id="canvas-placeholder" hidden>
+              <svg class="canvas-placeholder-filter" width="0" height="0" aria-hidden="true">
+                <defs>
+                  <filter id="canvas-engraving" color-interpolation-filters="sRGB">
+                    <feFlood flood-color="white" flood-opacity="0.04" result="tint" />
+                    <feComposite in="tint" in2="SourceAlpha" operator="in" result="fill" />
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="0.6" result="edge" />
+                    <feOffset in="edge" dx="0.5" dy="1" result="down" />
+                    <feComposite in="SourceAlpha" in2="down" operator="out" result="upper-edge" />
+                    <feFlood flood-color="black" flood-opacity="0.6" result="dark" />
+                    <feComposite in="dark" in2="upper-edge" operator="in" result="shadow" />
+                    <feOffset in="edge" dx="-0.5" dy="-1" result="up" />
+                    <feComposite in="SourceAlpha" in2="up" operator="out" result="lower-edge" />
+                    <feFlood flood-color="white" flood-opacity="0.28" result="light" />
+                    <feComposite in="light" in2="lower-edge" operator="in" result="highlight" />
+                    <feMerge>
+                      <feMergeNode in="fill" />
+                      <feMergeNode in="shadow" />
+                      <feMergeNode in="highlight" />
+                    </feMerge>
+                  </filter>
+                </defs>
+              </svg>
+              <span class="canvas-placeholder-icon" aria-hidden="true"><span class="engraved">✦</span></span>
+              <span class="engraved">Type something to <em>warp.</em></span>
+            </p>
+          </div>
           <footer class="status">
             <span id="status"></span>
             <span id="saved">✓ Autosaved</span>

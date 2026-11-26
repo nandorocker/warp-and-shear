@@ -268,9 +268,9 @@ const cloth: EffectDef<ClothParams> = {
     stagger: 0,
     diagonal: 0,
     pole: 0,
-    turn: 25,
+    turn: 0,
     tilt: 0,
-    perspective: 0.6,
+    perspective: 0.3,
   },
   controls: {
     depth: { min: -1.5, max: 1.5, step: 0.01, random: [0.2, 0.9] },

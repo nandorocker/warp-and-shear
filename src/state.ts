@@ -140,7 +140,7 @@ export const PRESETS: Record<string, DeepPartial<DesignState>> = {
   },
 };
 
-/** The text a first-time visitor sees (and what Reset all puts back). Presets are style only, so it lives here. */
+/** The text a first-time visitor sees. */
 export const WELCOME_TEXT = 'Bend it\nlike you\n*mean* it';
 
 /** First visit: the welcome text in one of the built-in presets, picked at random so the app opens on a real look. */
@@ -150,9 +150,20 @@ export function applyWelcome(state: DesignState, pick = Math.random()) {
   applyPreset(state, { ...PRESETS[name], text: WELCOME_TEXT });
 }
 
-/** "Reset all": every setting back to its plain default (neutral colors, no effects), with the welcome text. */
+/** Restore the editor defaults and clear the text. */
 export function applyReset(state: DesignState) {
-  applyPreset(state, { text: WELCOME_TEXT });
+  applyPreset(state, { text: '' });
+}
+
+/** Reset typography and colors. Curve step is an Output control. */
+export function applyResetStyles(state: DesignState) {
+  const { type: { detail: _detail, ...type }, color } = defaultState();
+  assignDeep(state, { type, color });
+}
+
+/** Restore the effect settings and turn the effects off. */
+export function applyResetEffects(state: DesignState) {
+  assignDeep(state.effects, defaultEffects());
 }
 
 /* ---------------- deep assign (keeps object identity for UI bindings) ---------------- */

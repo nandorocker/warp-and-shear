@@ -1,6 +1,7 @@
 import { parse, type Font } from 'opentype.js';
 import { buildScene, sceneToSvg, viewBox, type Scene } from './core/render';
 import { EFFECTS } from './core/effects';
+import { emptyBox } from './core/geom';
 import { createHistory } from './history';
 import {
   NAME_MAX,
@@ -27,6 +28,8 @@ import {
   PRESETS,
   applyPreset,
   applyReset,
+  applyResetEffects,
+  applyResetStyles,
   applyWelcome,
   WEIGHT_NAMES,
   defaultState,
@@ -43,6 +46,7 @@ const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as
 const textEl = $<HTMLTextAreaElement>('#text');
 const artEl = $<HTMLDivElement>('#art');
 const canvasEl = $<HTMLDivElement>('#canvas');
+const canvasPlaceholder = $<HTMLParagraphElement>('#canvas-placeholder');
 const statusEl = $<HTMLSpanElement>('#status');
 const savedEl = $<HTMLSpanElement>('#saved');
 const toastEl = $<HTMLSpanElement>('#toast');
@@ -84,7 +88,6 @@ function getFont(id: string, weight: number): Promise<Font> {
 /* ---------------- render ---------------- */
 
 let scene: Scene | null = null;
-let font: Font | null = null;
 let queued = false;
 let saveTimer = 0;
 
@@ -103,27 +106,38 @@ function schedule() {
 
 async function draw() {
   queued = false;
-  const wanted = `${state.type.font}:${state.type.weight}`;
+  const empty = !state.text.trim();
+  const { font: fontId, weight } = state.type;
+  let font: Font | null = null;
   try {
-    font = await getFont(state.type.font, state.type.weight);
+    if (!empty) font = await getFont(fontId, weight);
   } catch (err) {
-    statusEl.textContent = String(err);
+    if (state.text.trim() && state.type.font === fontId && state.type.weight === weight) {
+      statusEl.textContent = String(err);
+    }
     return;
   }
-  // A slow font load can finish after the choice moved on: draw with the current one instead of a stale result.
-  if (`${state.type.font}:${state.type.weight}` !== wanted) return requestDraw();
+  // The text or font choice may have changed while a font was loading.
+  if (font && (!state.text.trim() || state.type.font !== fontId || state.type.weight !== weight)) return requestDraw();
   const t0 = performance.now();
   const prevSlice = JSON.stringify(scene?.slice ?? null);
-  scene = buildScene(font, state);
+  scene = font ? buildScene(font, state) : { glyphs: [], ink: emptyBox(), slice: null };
   // The slice widget mirrors the text's lines: redraw it when they change shape.
   if (JSON.stringify(scene.slice) !== prevSlice) panel.renderWidgets();
-  // Preview uses lower precision; export uses full.
-  artEl.innerHTML = sceneToSvg(scene, state, { precision: 1 });
-  fitArt();
-  const ms = performance.now() - t0;
-  const [, , w, h] = viewBox(scene, state);
-  const pts = scene.glyphs.reduce((n, g) => n + g.contours.reduce((m, c) => m + c.length / 2, 0), 0);
-  statusEl.textContent = `${Math.round(w)} × ${Math.round(h)} · ${pts.toLocaleString()} points · ${ms.toFixed(0)} ms`;
+  artEl.hidden = empty;
+  canvasPlaceholder.hidden = !empty;
+  if (empty) {
+    artEl.replaceChildren();
+    statusEl.textContent = '';
+  } else {
+    // Preview uses lower precision; export uses full.
+    artEl.innerHTML = sceneToSvg(scene, state, { precision: 1 });
+    fitArt();
+    const ms = performance.now() - t0;
+    const [, , w, h] = viewBox(scene, state);
+    const pts = scene.glyphs.reduce((n, g) => n + g.contours.reduce((m, c) => m + c.length / 2, 0), 0);
+    statusEl.textContent = `${Math.round(w)} × ${Math.round(h)} · ${pts.toLocaleString()} points · ${ms.toFixed(0)} ms`;
+  }
   clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     savedEl.textContent = save(state) ? '✓ Autosaved' : 'Not saved: browser storage is unavailable';
@@ -329,6 +343,7 @@ const setOn = (el: HTMLElement, on: boolean) => el.setAttribute('aria-checked', 
 const frameChips = $<HTMLDivElement>('#frame-chips');
 
 const presetsMenu = attachMenu($('#presets-wrap'), $<HTMLButtonElement>('#presets-btn'), $('#presets-menu'));
+attachMenu($('#reset-wrap'), $<HTMLButtonElement>('#reset-btn'), $('#reset-menu'));
 attachMenu($('#export-wrap'), $<HTMLButtonElement>('#export-btn'), $('#export-menu'));
 
 /* ---------------- presets ---------------- */
@@ -715,7 +730,10 @@ const actions: Record<string, () => void> = {
   mutate: () => change(() => mutateEffects(state)),
   undo,
   redo,
-  reset: () => change(() => applyReset(state), 'Reset everything'), // plain defaults, not the first-visit style
+  reset: () => change(() => applyReset(state), 'Reset everything'),
+  'reset-styles': () => change(() => applyResetStyles(state), 'Reset styles'),
+  'reset-effects': () => change(() => applyResetEffects(state), 'Reset effects'),
+  'reset-text': () => change(() => { state.text = ''; }, 'Cleared text'),
   import: importFile,
   'export-all': exportAll,
   svg: () => {
